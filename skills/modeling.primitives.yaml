@@ -1,0 +1,10 @@
+id: modeling.primitives
+version: 1
+name: Primitives
+domains: [modeling]
+tools: [scene.create_object]
+system_prompt: presets/modeling/create_mesh.md
+risk: low
+requires_confirmation: false
+viewport_capture: false
+description: Add cube, sphere, cylinder, cone, torus, plane, and empty helpers.

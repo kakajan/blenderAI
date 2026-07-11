@@ -1,0 +1,10 @@
+id: modeling.boolean
+version: 1
+name: Boolean
+domains: [modeling]
+tools: [modifier.add, modifier.apply, selection.set]
+system_prompt: presets/modeling/create_mesh.md
+risk: medium
+requires_confirmation: true
+viewport_capture: optional
+description: Boolean union/difference/intersect between objects.

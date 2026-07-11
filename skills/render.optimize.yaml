@@ -1,0 +1,10 @@
+id: render.optimize
+version: 1
+name: Render Optimize
+domains: [rendering]
+tools: [render.set]
+system_prompt: presets/general/blender_assistant.md
+risk: low
+requires_confirmation: false
+viewport_capture: false
+description: Tune Cycles/EEVEE samples, denoise, and resolution presets.

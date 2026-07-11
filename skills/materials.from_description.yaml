@@ -1,0 +1,10 @@
+id: materials.from_description
+version: 1
+name: Material From Description
+domains: [materials]
+tools: [material.create, material.assign, node.set]
+system_prompt: presets/materials/pbr_artist.md
+risk: low
+requires_confirmation: false
+viewport_capture: optional
+description: Interpret artistic material descriptions into node setups.

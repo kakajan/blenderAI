@@ -1,0 +1,295 @@
+:root {
+  --bg-0: #0c0e13;
+  --bg-1: #141820;
+  --bg-2: #1b2030;
+  --bg-3: #252b3a;
+  --surface: rgba(20, 24, 32, 0.78);
+  --surface-solid: #161a24;
+  --text: #eeeae3;
+  --muted: #9a948a;
+  --accent: #d4a574;
+  --accent-2: #b87333;
+  --accent-soft: rgba(212, 165, 116, 0.12);
+  --accent-glow: rgba(212, 165, 116, 0.22);
+  --ok: #6fbf8a;
+  --err: #e07a6a;
+  --border: rgba(238, 234, 227, 0.08);
+  --control-bg: #10141c;
+  --control-border: rgba(232, 220, 200, 0.22);
+  --control-border-hover: rgba(212, 165, 116, 0.45);
+  --select-active: #2171d1;
+  --select-active-hover: #1a5fB3;
+  --radius: 14px;
+  --radius-sm: 10px;
+  --space-page: clamp(1rem, 3vw, 2rem);
+  --space-section: clamp(1.25rem, 2.5vw, 2rem);
+  --header-h: 76px;
+  --font-sans: "DM Sans", system-ui, sans-serif;
+  --font-fa: "Vazirmatn", "DM Sans", system-ui, sans-serif;
+  --font-display: "Instrument Serif", Georgia, "Times New Roman", serif;
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.28);
+  --shadow-lg: 0 18px 50px rgba(0, 0, 0, 0.45);
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* Stacking scale — keep dropdowns above all page chrome */
+  --z-base: 1;
+  --z-card: 2;
+  --z-sticky-controls: 20;
+  --z-header: 100;
+  --z-dropdown-trigger: 200;
+  --z-dropdown: 10000;
+  --z-toast: 11000;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.5;
+  background:
+    radial-gradient(1100px 520px at 8% -8%, rgba(184, 115, 51, 0.2), transparent 55%),
+    radial-gradient(900px 480px at 100% 0%, rgba(33, 113, 209, 0.08), transparent 48%),
+    radial-gradient(700px 400px at 70% 100%, rgba(212, 165, 116, 0.06), transparent 50%),
+    linear-gradient(165deg, #0a0c10 0%, var(--bg-0) 45%, #10131a 100%);
+  background-attachment: fixed;
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Persian UI uses local Vazirmatn */
+.shell[lang="fa"],
+.shell[lang="fa"] button,
+.shell[lang="fa"] input,
+.shell[lang="fa"] select,
+.shell[lang="fa"] textarea {
+  font-family: var(--font-fa);
+}
+
+.shell[lang="fa"] .brand-title,
+.shell[lang="fa"] .page-title {
+  font-family: var(--font-fa);
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+button {
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--bg-2);
+  border-radius: var(--radius-sm);
+  padding: 0.6rem 1rem;
+  min-height: 40px;
+  font-weight: 500;
+  transition:
+    background 0.15s var(--ease),
+    border-color 0.15s var(--ease),
+    transform 0.12s var(--ease),
+    box-shadow 0.15s var(--ease);
+}
+
+button:hover:not(:disabled) {
+  background: var(--bg-3);
+  border-color: rgba(212, 165, 116, 0.35);
+}
+
+button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+button.primary {
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+  color: #1a120c;
+  border: none;
+  font-weight: 700;
+  box-shadow: 0 8px 20px var(--accent-glow);
+}
+
+button.primary:hover:not(:disabled) {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+  border: none;
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+input,
+select,
+textarea {
+  width: 100%;
+  background: var(--control-bg);
+  border: 1px solid var(--control-border);
+  border-radius: var(--radius-sm);
+  padding: 0.65rem 0.85rem;
+  min-height: 42px;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+textarea {
+  min-height: 96px;
+  resize: vertical;
+  line-height: 1.55;
+}
+
+input:hover,
+select:hover,
+textarea:hover {
+  border-color: var(--control-border-hover);
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+/* Native select fallback styling */
+select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%239a948a' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.85rem center;
+  padding-inline-end: 2.2rem;
+}
+
+[dir="rtl"] select {
+  background-position: left 0.85rem center;
+  padding-inline-end: 0.85rem;
+  padding-inline-start: 2.2rem;
+}
+
+label.field,
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: clamp(1rem, 2vw, 1.35rem);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.ok {
+  color: var(--ok);
+}
+
+.err {
+  color: var(--err);
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.stream-cursor::after {
+  content: "";
+  display: inline-block;
+  width: 0.45ch;
+  height: 1em;
+  margin-inline-start: 2px;
+  vertical-align: text-bottom;
+  background: var(--accent);
+  animation: blink 1s step-end infinite;
+}
+
+.skill-pulse {
+  animation: pulse 1.6s ease-in-out infinite;
+}
+
+/* Scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(212, 165, 116, 0.35) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: rgba(212, 165, 116, 0.3);
+  border-radius: 99px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}

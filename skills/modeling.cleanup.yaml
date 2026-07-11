@@ -1,0 +1,10 @@
+id: modeling.cleanup
+version: 1
+name: Mesh Cleanup
+domains: [modeling]
+tools: [mesh.ops, selection.set]
+system_prompt: presets/modeling/create_mesh.md
+risk: medium
+requires_confirmation: true
+viewport_capture: optional
+description: Remove doubles, fix normals, dissolve, non-manifold cleanup.

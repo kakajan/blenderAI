@@ -1,0 +1,10 @@
+id: review.critique
+version: 1
+name: Visual Critique
+domains: [review]
+tools: [viewport.capture]
+system_prompt: presets/general/blender_assistant.md
+risk: low
+requires_confirmation: false
+viewport_capture: required
+description: Critique composition and silhouette from a viewport capture.

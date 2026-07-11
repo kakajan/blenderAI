@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "blender-ai": {
+      "command": "python",
+      "args": ["-m", "blender_ai_sidecar.main", "mcp", "--stdio"],
+      "cwd": "D:/Projects/blenderAI/sidecar"
+    }
+  }
+}

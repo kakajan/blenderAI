@@ -1,0 +1,5 @@
+id: style.low_poly
+name: Low Poly
+prompt: |
+  Work in a clean low-poly style: limited polygon counts, flat shading where appropriate,
+  readable silhouettes, minimal bevels, bold forms. Prefer discrete color materials over complex PBR.

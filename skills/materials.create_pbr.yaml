@@ -1,0 +1,10 @@
+id: materials.create_pbr
+version: 1
+name: Create PBR Material
+domains: [materials]
+tools: [material.create, material.assign, node.set]
+system_prompt: presets/materials/pbr_artist.md
+risk: low
+requires_confirmation: false
+viewport_capture: optional
+description: Build Principled BSDF PBR materials from descriptions.

@@ -1,0 +1,10 @@
+id: scene.organize
+version: 1
+name: Scene Organize
+domains: [scene]
+tools: [collection.organize, selection.set]
+system_prompt: presets/general/blender_assistant.md
+risk: low
+requires_confirmation: false
+viewport_capture: false
+description: Rename, collect, and organize scene hierarchy.

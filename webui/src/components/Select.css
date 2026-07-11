@@ -1,0 +1,169 @@
+.ui-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  min-width: 0;
+  position: relative;
+  z-index: var(--z-base);
+}
+
+.ui-field.is-open {
+  z-index: var(--z-dropdown-trigger);
+}
+
+.ui-label {
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: var(--muted);
+  line-height: 1.2;
+}
+
+.ui-select {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-height: 42px;
+  padding: 0.55rem 0.85rem;
+  border-radius: 10px;
+  border: 1px solid var(--control-border);
+  background: var(--control-bg);
+  color: var(--text);
+  text-align: start;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    background 0.15s ease;
+}
+
+.ui-select:hover:not(:disabled) {
+  border-color: var(--control-border-hover);
+  background: var(--bg-2);
+}
+
+.ui-select:focus-visible,
+.ui-select.is-open {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.ui-select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ui-select-value {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.ui-select-value.is-placeholder {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.ui-select-chevron {
+  flex-shrink: 0;
+  color: var(--muted);
+  display: grid;
+  place-items: center;
+  transition: transform 0.18s ease;
+}
+
+.ui-select.is-open .ui-select-chevron {
+  transform: rotate(180deg);
+  color: var(--accent);
+}
+
+/* Portaled to body — always above page panels */
+.ui-select-menu {
+  position: fixed;
+  z-index: var(--z-dropdown);
+  margin: 0;
+  padding: 0.35rem;
+  list-style: none;
+  border-radius: 10px;
+  border: 1px solid var(--control-border);
+  background: #141820;
+  box-shadow: var(--shadow-lg);
+  overflow: auto;
+  animation: menuIn 0.14s ease-out;
+}
+
+.ui-select-menu.opens-up {
+  transform-origin: bottom center;
+}
+
+.ui-select-menu.opens-down {
+  transform-origin: top center;
+}
+
+@keyframes menuIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.ui-select-menu.opens-up {
+  animation-name: menuInUp;
+}
+
+@keyframes menuInUp {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.ui-select-option {
+  width: 100%;
+  display: block;
+  text-align: start;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text);
+  padding: 0.55rem 0.7rem;
+  font-size: 0.92rem;
+  font-weight: 500;
+}
+
+.ui-select-option:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: transparent;
+  transform: none;
+}
+
+.ui-select-option.is-active {
+  background: var(--select-active);
+  color: #fff;
+}
+
+.ui-select-option.is-active:hover {
+  background: var(--select-active-hover);
+  filter: none;
+}
+
+.ui-select-empty {
+  padding: 0.65rem 0.7rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+}

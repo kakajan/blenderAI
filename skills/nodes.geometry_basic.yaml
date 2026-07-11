@@ -1,0 +1,10 @@
+id: nodes.geometry_basic
+version: 1
+name: Geometry Nodes Basic
+domains: [nodes]
+tools: [nodes.geometry_set, modifier.add]
+system_prompt: presets/general/blender_assistant.md
+risk: medium
+requires_confirmation: false
+viewport_capture: optional
+description: Create simple Geometry Nodes modifiers from descriptions.

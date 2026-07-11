@@ -1,0 +1,10 @@
+id: modeling.modify_mesh
+version: 1
+name: Modify Mesh
+domains: [modeling]
+tools: [mesh.ops, selection.set, modifier.add]
+system_prompt: presets/modeling/create_mesh.md
+risk: medium
+requires_confirmation: false
+viewport_capture: optional
+description: Edit selected meshes with extrude, bevel, inset, loop cut, and similar ops.

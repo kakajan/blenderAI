@@ -1,0 +1,139 @@
+.provider-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
+  margin-top: 0.25rem;
+}
+
+.provider-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  position: relative;
+  z-index: var(--z-card);
+  overflow: visible;
+  transition:
+    transform 0.18s var(--ease),
+    border-color 0.18s ease;
+}
+
+.provider-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(212, 165, 116, 0.28);
+}
+
+.provider-card.dim {
+  opacity: 0.55;
+}
+
+.provider-card h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.provider-card label,
+.provider-card .field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.provider-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  flex-shrink: 0;
+  box-shadow: 0 6px 14px var(--accent-glow);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+}
+
+.row.gap {
+  gap: 0.7rem;
+}
+
+.row.between {
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.15rem;
+}
+
+.actions button {
+  font-size: 0.85rem;
+  padding: 0.5rem 0.8rem;
+  min-height: 36px;
+}
+
+.global-bar {
+  display: grid;
+  gap: 1rem;
+  margin-bottom: 1.15rem;
+}
+
+.global-bar .ui-toggle {
+  width: fit-content;
+}
+
+.fallback {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.onboarding {
+  margin-bottom: 1.15rem;
+}
+
+.onboarding h3 {
+  margin: 0 0 0.65rem;
+  font-size: 1.1rem;
+}
+
+.onboarding ol {
+  color: var(--muted);
+  margin: 0 0 1rem;
+  padding-inline-start: 1.25rem;
+  line-height: 1.6;
+}
+
+.add-custom {
+  margin-top: 1.15rem;
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.add-custom input {
+  flex: 1;
+  min-width: 200px;
+}
+
+.settings-card {
+  display: grid;
+  gap: 1.1rem;
+  max-width: 520px;
+  position: relative;
+  z-index: var(--z-card);
+  overflow: visible;
+}
+
+.settings-card .help {
+  margin: -0.35rem 0 0;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}

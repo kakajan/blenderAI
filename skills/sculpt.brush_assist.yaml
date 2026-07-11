@@ -1,0 +1,10 @@
+id: sculpt.brush_assist
+version: 1
+name: Sculpt Brush Assist
+domains: [sculpting]
+tools: [sculpt.set_brush, selection.set]
+system_prompt: presets/general/blender_assistant.md
+risk: low
+requires_confirmation: false
+viewport_capture: optional
+description: Suggest and apply sculpt brush, size, and strength.

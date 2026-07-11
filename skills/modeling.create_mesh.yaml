@@ -1,0 +1,10 @@
+id: modeling.create_mesh
+version: 1
+name: Create Mesh
+domains: [modeling]
+tools: [scene.create_object, mesh.ops, selection.set]
+system_prompt: presets/modeling/create_mesh.md
+risk: medium
+requires_confirmation: false
+viewport_capture: optional
+description: Create new mesh objects from natural language descriptions.

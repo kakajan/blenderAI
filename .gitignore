@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+dist/
+build/
+.venv/
+venv/
+.env
+.env.*
+!.env.example
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg
+
+# Node / WebUI
+node_modules/
+webui/dist/
+webui/.vite/
+*.log
+npm-debug.log*
+
+# Blender
+*.blend
+*.blend1
+*.blend2
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# BlenderAI local data
+.blenderai/
+*.db
+*.sqlite

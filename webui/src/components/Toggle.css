@@ -1,0 +1,140 @@
+.ui-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+  cursor: pointer;
+  user-select: none;
+  max-width: 100%;
+}
+
+.ui-toggle.is-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ui-toggle-input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  pointer-events: none;
+}
+
+.ui-toggle-track {
+  position: relative;
+  flex-shrink: 0;
+  width: 44px;
+  height: 26px;
+  border-radius: 999px;
+  background: #2a303c;
+  border: 1px solid rgba(238, 234, 227, 0.12);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.35);
+  transition:
+    background 0.2s var(--ease),
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.ui-toggle.sm .ui-toggle-track {
+  width: 40px;
+  height: 24px;
+}
+
+.ui-toggle-thumb {
+  position: absolute;
+  top: 2px;
+  inset-inline-start: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #f4f0ea 0%, #d8d2c8 100%);
+  color: transparent;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  transition:
+    transform 0.22s var(--ease),
+    background 0.2s ease,
+    color 0.15s ease;
+}
+
+.ui-toggle.sm .ui-toggle-thumb {
+  width: 18px;
+  height: 18px;
+}
+
+.ui-toggle.is-on .ui-toggle-track {
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+  border-color: rgba(212, 165, 116, 0.55);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    0 0 0 3px var(--accent-glow);
+}
+
+.ui-toggle.is-on .ui-toggle-thumb {
+  transform: translateX(18px);
+  background: linear-gradient(180deg, #fff 0%, #f3ebe1 100%);
+  color: var(--accent-2);
+}
+
+.ui-toggle.sm.is-on .ui-toggle-thumb {
+  transform: translateX(16px);
+}
+
+[dir="rtl"] .ui-toggle.is-on .ui-toggle-thumb {
+  transform: translateX(-18px);
+}
+
+[dir="rtl"] .ui-toggle.sm.is-on .ui-toggle-thumb {
+  transform: translateX(-16px);
+}
+
+.ui-toggle:hover:not(.is-disabled) .ui-toggle-track {
+  border-color: rgba(212, 165, 116, 0.4);
+}
+
+.ui-toggle-input:focus-visible + .ui-toggle-track {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.ui-toggle-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.ui-toggle-label {
+  color: var(--text);
+  font-size: 0.92rem;
+  font-weight: 550;
+  line-height: 1.25;
+}
+
+.ui-toggle-hint {
+  color: var(--muted);
+  font-size: 0.75rem;
+  line-height: 1.3;
+}
+
+/* Provider card: compact ON switch aligned with title */
+.provider-enable {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-shrink: 0;
+}
+
+.provider-enable .ui-toggle-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.provider-enable .ui-toggle.is-on .ui-toggle-label {
+  color: var(--accent);
+}

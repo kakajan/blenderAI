@@ -1,0 +1,10 @@
+id: lighting.hdri_setup
+version: 1
+name: HDRI Setup
+domains: [lighting]
+tools: [world.set, light.set]
+system_prompt: presets/lighting/product_shot.md
+risk: low
+requires_confirmation: false
+viewport_capture: optional
+description: Configure world environment / HDRI-style lighting.

@@ -1,0 +1,131 @@
+.chat-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+  min-height: calc(100vh - var(--header-h) - 3.5rem);
+}
+
+.chat-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+  position: relative;
+  z-index: var(--z-sticky-controls);
+}
+
+.chat-controls {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(140px, 180px));
+  gap: 0.75rem;
+  padding: 0.85rem;
+  border-radius: var(--radius);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(12px);
+  position: relative;
+  z-index: var(--z-sticky-controls);
+  overflow: visible;
+}
+
+.chat-log {
+  flex: 1;
+  overflow: auto;
+  min-height: 280px;
+  max-height: min(58vh, 640px);
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  padding: 1.1rem !important;
+  position: relative;
+  z-index: var(--z-card);
+}
+
+.chat-log .empty-hint {
+  margin: auto;
+  text-align: center;
+  color: var(--muted);
+  padding: 2rem 1rem;
+}
+
+.bubble pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: inherit;
+  line-height: 1.55;
+  font-size: 0.95rem;
+}
+
+.bubble.user {
+  align-self: flex-end;
+  background: var(--accent-soft);
+  border: 1px solid rgba(212, 165, 116, 0.28);
+  border-radius: 16px 16px 4px 16px;
+  padding: 0.85rem 1rem;
+  max-width: min(85%, 640px);
+}
+
+[dir="rtl"] .bubble.user {
+  border-radius: 16px 16px 16px 4px;
+}
+
+.bubble.assistant {
+  align-self: flex-start;
+  background: rgba(10, 12, 16, 0.72);
+  border: 1px solid var(--border);
+  border-radius: 16px 16px 16px 4px;
+  padding: 0.85rem 1rem;
+  max-width: min(92%, 720px);
+}
+
+[dir="rtl"] .bubble.assistant {
+  border-radius: 16px 16px 4px 16px;
+}
+
+.bubble.system {
+  color: var(--err);
+  font-size: 0.9rem;
+  align-self: center;
+}
+
+.chat-form {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.85rem;
+  align-items: end;
+  padding: 0.9rem;
+  border-radius: var(--radius);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  position: relative;
+  z-index: var(--z-card);
+}
+
+.chat-form textarea {
+  min-height: 88px;
+}
+
+.chat-form .primary {
+  min-width: 108px;
+  height: 48px;
+  align-self: end;
+}
+
+@media (max-width: 800px) {
+  .chat-controls {
+    grid-template-columns: 1fr;
+    width: 100%;
+  }
+
+  .chat-form {
+    grid-template-columns: 1fr;
+  }
+
+  .chat-form .primary {
+    width: 100%;
+  }
+}

@@ -1,0 +1,9 @@
+id: workflow.character_blockout
+name: Character Blockout
+steps:
+  - skill: modeling.primitives
+    prompt: Create simple primitive blockout for a stylized humanoid (head, torso, limbs) as separate objects in a Character collection.
+  - skill: modeling.modify_mesh
+    prompt: Refine proportions for a heroic stylized character, keep forms readable.
+  - skill: scene.organize
+    prompt: Rename and organize all character parts under Character/Blockout.
