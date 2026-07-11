@@ -2,7 +2,7 @@
 
 **همکار هوش مصنوعی شما داخل بلندر — وقتی بخواهید خصوصی، وقتی لازم باشد قدرتمند.**
 
-BlenderAI بلندر را به مدل‌های محلی و ابری وصل می‌کند (Ollama، OpenAI، Claude، DeepSeek، Qwen، GLM و هر API سازگار با OpenAI). در WebUI سریع چت کنید، با **Skills** مدلینگ و متریال و نور بسازید، و از Cursor با **MCP** صحنهٔ زنده را کنترل کنید.
+BlenderAI بلندر را به مدل‌های محلی و ابری وصل می‌کند (Ollama، OpenAI، Claude، DeepSeek، Qwen، GLM و هر API سازگار با OpenAI). از **N-Panel داخل خود بلندر** چت کنید، با **Skills** مدلینگ و متریال و نور بسازید، و از Cursor با **MCP** صحنهٔ زنده را کنترل کنید. WebUI مرورگر برای Providers و صفحات پیشرفته اختیاری است.
 
 > English: [README.md](README.md)
 
@@ -68,9 +68,11 @@ python installer/install.py
 
 بلندر را باز کنید → در ویوپورت سه‌بعدی تب **BlenderAI** را در N-Panel ببینید (`N`).
 
-### ۳. باز کردن WebUI
+### ۳. چت در N-Panel
 
-از پنل روی **Open Chat** بزنید، یا بروید به [http://127.0.0.1:8765](http://127.0.0.1:8765).
+در تب **BlenderAI** سایدبار، پرامپت بنویسید و **Send** بزنید. چت داخل خود بلندر اجرا می‌شود.
+
+برای Providers / History / Skills در UI بزرگ‌تر، **Open in browser** را بزنید (یا [http://127.0.0.1:8765](http://127.0.0.1:8765)).
 
 ### ۴. اتصال مدل
 
@@ -91,19 +93,20 @@ python installer/install.py
 
 | عمل | کار |
 |-----|-----|
-| Open Chat | باز کردن WebUI |
-| Open Providers Settings | تنظیمات اتصال AI |
+| **Chat → Send** | گفتگو با صحنه از داخل بلندر |
+| **Chat → Stop / New Chat** | توقف تولید یا پاک‌کردن تاریخچه |
+| Providers (browser) | تنظیمات اتصال AI در WebUI |
 | Capture | تصویر ویوپورت برای vision / نقد |
 | Undo AI | برگرداندن آخرین گروه ابزار AI |
-| Stop | توقف تولید جاری |
-| Start / Stop Sidecar | کنترل سرویس محلی |
+| Open in browser | WebUI اختیاری (Providers، History، Skills) |
+| Start / Stop | کنترل سرویس محلی Sidecar |
 
-### در WebUI
+### در WebUI (اختیاری)
 
 | تب | کاربرد |
 |----|--------|
 | **Chat** | گفتگو با صحنه؛ انتخاب ارائه‌دهنده، مدل و اسکیل |
-| **Skills** | قابلیت‌های دامنه‌ای |
+| **Skills** | اسکیل‌های داخلی و **ساخت اسکیل سفارشی** |
 | **Presets** | پرامپت و ورک‌فلو آماده |
 | **Providers** | همهٔ تنظیمات اتصال AI |
 | **History** | تاریخچه گفتگو |

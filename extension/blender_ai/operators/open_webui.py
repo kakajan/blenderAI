@@ -7,7 +7,8 @@ from .. import preferences
 
 class BLENDERAI_OT_open_webui(Operator):
     bl_idname = "blender_ai.open_webui"
-    bl_label = "Open BlenderAI Chat"
+    bl_label = "Open in browser"
+    bl_description = "Open the rich WebUI in your browser (Providers, History, Skills)"
     bl_options = {"REGISTER"}
 
     def execute(self, context):

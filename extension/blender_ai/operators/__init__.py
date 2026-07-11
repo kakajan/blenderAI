@@ -7,6 +7,8 @@ from . import (
     undo_ai,
     stop_generation,
     execute_tool,
+    chat_send,
+    chat_clear,
 )
 
 MODULES = (
@@ -18,6 +20,8 @@ MODULES = (
     undo_ai,
     stop_generation,
     execute_tool,
+    chat_send,
+    chat_clear,
 )
 
 

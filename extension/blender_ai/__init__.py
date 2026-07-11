@@ -9,13 +9,14 @@ bl_info = {
 }
 
 from . import preferences
+from . import chat_state
 from . import panels
 from . import operators
 from .bridge import client as bridge_client
 from .bridge import queue as tool_queue
 
 
-MODULES = (preferences, operators, panels)
+MODULES = (preferences, chat_state, operators, panels)
 
 
 def register():
@@ -26,6 +27,9 @@ def register():
 
 
 def unregister():
+    from . import chat_http
+
+    chat_http.cancel_stream()
     bridge_client.unregister()
     tool_queue.unregister()
     for mod in reversed(MODULES):

@@ -46,7 +46,21 @@ export const getModels = (id: string) =>
 export const getSettings = () => req<AppSettings>("/api/settings");
 export const putSettings = (body: Record<string, unknown>) =>
   req<AppSettings>("/api/settings", { method: "PUT", body: JSON.stringify(body) });
-export const getSkills = () => req<{ skills: any[] }>("/api/skills");
+export const getSkills = () =>
+  req<{ skills: any[]; known_tools?: string[] }>("/api/skills");
+export const getSkill = (id: string) =>
+  req<{ skill: any }>(`/api/skills/${encodeURIComponent(id)}`);
+export const createSkill = (body: Record<string, unknown>) =>
+  req<{ skill: any }>("/api/skills", { method: "POST", body: JSON.stringify(body) });
+export const updateSkill = (id: string, body: Record<string, unknown>) =>
+  req<{ skill: any }>(`/api/skills/${encodeURIComponent(id)}`, {
+    method: "PUT",
+    body: JSON.stringify(body),
+  });
+export const deleteSkill = (id: string) =>
+  req<{ ok: boolean }>(`/api/skills/${encodeURIComponent(id)}`, { method: "DELETE" });
+export const reloadSkills = () =>
+  req<{ ok: boolean; count: number }>("/api/skills/reload", { method: "POST" });
 export const getPresets = () => req<{ presets: any[] }>("/api/presets");
 export const getChats = () => req<{ chats: any[] }>("/api/chats");
 export const getMessages = (id: string) => req<{ messages: any[] }>(`/api/chats/${id}/messages`);

@@ -59,6 +59,7 @@ class Settings(BaseSettings):
     data_dir: Path = Field(default_factory=_default_data_dir)
     skills_dir: Path = Field(default_factory=lambda: _path_from_install("skills_dir", repo_root() / "skills"))
     presets_dir: Path = Field(default_factory=lambda: _path_from_install("presets_dir", repo_root() / "presets"))
+    user_skills_dir: Path = Field(default_factory=lambda: _default_data_dir() / "user_skills")
     webui_dist: Path = Field(
         default_factory=lambda: _path_from_install("webui_dist", repo_root() / "webui" / "dist")
     )

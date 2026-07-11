@@ -29,8 +29,9 @@ class BlenderAIPreferences(AddonPreferences):
         layout.prop(self, "auto_start_sidecar")
         layout.prop(self, "autonomy")
         layout.separator()
-        layout.operator("blender_ai.open_webui", text="Open BlenderAI Chat")
-        layout.operator("blender_ai.open_providers", text="Open Providers Settings")
+        layout.label(text="Chat in the N-Panel (View3D → Sidebar → BlenderAI).")
+        layout.operator("blender_ai.open_webui", text="Open in browser")
+        layout.operator("blender_ai.open_providers", text="Providers (browser)")
 
 
 def get_prefs(context=None):

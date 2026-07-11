@@ -2,7 +2,7 @@
 
 **Your AI co-pilot inside Blender — private when you want, powerful when you need it.**
 
-BlenderAI connects Blender to local and cloud models (Ollama, OpenAI, Claude, DeepSeek, Qwen, GLM, and any OpenAI-compatible API). Chat in a fast WebUI, run domain **Skills** for modeling, materials, lighting, and more, and control a live scene from Cursor via **MCP**.
+BlenderAI connects Blender to local and cloud models (Ollama, OpenAI, Claude, DeepSeek, Qwen, GLM, and any OpenAI-compatible API). Chat from the **N-Panel inside Blender**, run domain **Skills** for modeling, materials, lighting, and more, and control a live scene from Cursor via **MCP**. The browser WebUI is optional for Providers and richer screens.
 
 > فارسی: [README.fa.md](README.fa.md)
 
@@ -68,9 +68,11 @@ The installer finds Blender, installs the extension, and sets up the Sidecar + W
 
 Open Blender → look for the **BlenderAI** tab in the 3D Viewport N-Panel (press `N`).
 
-### 3. Open the WebUI
+### 3. Chat in the N-Panel
 
-From the N-Panel click **Open Chat**, or visit [http://127.0.0.1:8765](http://127.0.0.1:8765).
+In the **BlenderAI** sidebar tab, type a prompt and click **Send**. Chat runs inside Blender.
+
+For Providers / History / Skills in a larger UI, use **Open in browser** (or visit [http://127.0.0.1:8765](http://127.0.0.1:8765)).
 
 ### 4. Connect a model
 
@@ -91,19 +93,20 @@ You’re ready to create meshes, materials, and lighting with natural language.
 
 | Action | What it does |
 |--------|----------------|
-| Open Chat | Opens the WebUI |
-| Open Providers Settings | Jumps to AI connection settings |
+| **Chat → Send** | Talk to the scene from inside Blender |
+| **Chat → Stop / New Chat** | Cancel generation or clear history |
+| Providers (browser) | Opens AI connection settings in the WebUI |
 | Capture | Sends a viewport snapshot for vision / critique skills |
 | Undo AI | Undoes the last AI tool group |
-| Stop | Requests cancellation of the current generation |
-| Start / Stop Sidecar | Controls the local AI service |
+| Open in browser | Optional rich WebUI (Providers, History, Skills) |
+| Start / Stop | Controls the local Sidecar service |
 
-### In the WebUI
+### In the WebUI (optional)
 
 | Tab | Purpose |
 |-----|---------|
 | **Chat** | Talk to the scene; pick provider, model, and skill |
-| **Skills** | Browse domain capabilities (modeling, materials, …) |
+| **Skills** | Browse built-in skills and **create your own** |
 | **Presets** | Ready-made prompts and workflows |
 | **Providers** | All AI connection settings (the source of truth) |
 | **History** | Past conversations |

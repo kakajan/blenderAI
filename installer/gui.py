@@ -278,10 +278,20 @@ class InstallerApp(ctk.CTk):
 
     def _set_install_button_idle(self) -> None:
         if self._installed:
-            self.install_btn.configure(text="Reinstall BlenderAI")
+            self.install_btn.configure(
+                text="Close",
+                command=self._close_installer,
+                state="normal",
+            )
         else:
-            self.install_btn.configure(text="Install BlenderAI")
-        self.install_btn.configure(state="normal")
+            self.install_btn.configure(
+                text="Install BlenderAI",
+                command=self._start_install,
+                state="normal",
+            )
+
+    def _close_installer(self) -> None:
+        self.destroy()
 
     def _rescan(self) -> None:
         self.blenders = discover_blenders()

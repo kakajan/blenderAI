@@ -150,16 +150,98 @@ async def put_settings(body: SettingsUpdate, request: Request):
     return await get_settings(request)
 
 
+class SkillUpsert(BaseModel):
+    id: str | None = None
+    name: str
+    description: str = ""
+    domains: list[str] | str = Field(default_factory=lambda: ["custom"])
+    tools: list[str] | str = Field(default_factory=list)
+    prompt: str = ""
+    risk: str = "medium"
+    requires_confirmation: bool = False
+    viewport_capture: str = "optional"
+    version: int = 1
+
+
 @router.get("/api/skills")
 async def list_skills(request: Request):
+    from blender_ai_sidecar.skills.engine import KNOWN_TOOLS
+
     skills = _app_state(request).skills.list()
-    # strip huge prompts in list view
     slim = []
     for s in skills:
-        item = {k: v for k, v in s.items() if k != "system_prompt_text"}
+        item = {k: v for k, v in s.items() if k not in {"system_prompt_text"}}
         item["has_prompt"] = bool(s.get("system_prompt_text"))
+        item["source"] = s.get("source") or "bundled"
+        item["editable"] = bool(s.get("editable"))
         slim.append(item)
-    return {"skills": slim}
+    return {"skills": slim, "known_tools": KNOWN_TOOLS}
+
+
+@router.get("/api/skills/meta")
+async def skills_meta():
+    from blender_ai_sidecar.skills.engine import KNOWN_TOOLS
+
+    return {"known_tools": KNOWN_TOOLS}
+
+
+@router.get("/api/skills/{skill_id}")
+async def get_skill(skill_id: str, request: Request):
+    skill = _app_state(request).skills.get(skill_id)
+    if not skill:
+        from fastapi import HTTPException
+
+        raise HTTPException(status_code=404, detail="Skill not found")
+    return {
+        "skill": {
+            **{k: v for k, v in skill.items() if k != "_path"},
+            "source": skill.get("source") or "bundled",
+            "editable": bool(skill.get("editable")),
+        }
+    }
+
+
+@router.post("/api/skills")
+async def create_skill(body: SkillUpsert, request: Request):
+    from fastapi import HTTPException
+
+    try:
+        skill = _app_state(request).skills.save_user_skill(body.model_dump())
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {"skill": {k: v for k, v in skill.items() if k != "_path"}}
+
+
+@router.put("/api/skills/{skill_id}")
+async def update_skill(skill_id: str, body: SkillUpsert, request: Request):
+    from fastapi import HTTPException
+
+    data = body.model_dump()
+    data["id"] = skill_id
+    try:
+        skill = _app_state(request).skills.save_user_skill(data)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {"skill": {k: v for k, v in skill.items() if k != "_path"}}
+
+
+@router.delete("/api/skills/{skill_id}")
+async def delete_skill(skill_id: str, request: Request):
+    from fastapi import HTTPException
+
+    try:
+        ok = _app_state(request).skills.delete_user_skill(skill_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if not ok:
+        raise HTTPException(status_code=404, detail="Skill not found")
+    return {"ok": True}
+
+
+@router.post("/api/skills/reload")
+async def reload_skills(request: Request):
+    skills = _app_state(request).skills.reload()
+    return {"ok": True, "count": len(skills)}
 
 
 @router.get("/api/presets")

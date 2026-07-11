@@ -1,6 +1,7 @@
 import bpy
 from bpy.types import Operator
 
+from .. import chat_http
 from ..bridge import client as bridge_client
 
 
@@ -10,6 +11,7 @@ class BLENDERAI_OT_stop_generation(Operator):
     bl_options = {"REGISTER"}
 
     def execute(self, context):
+        chat_http.cancel_stream()
         bridge_client.send_json({"type": "stop_generation"})
         self.report({"INFO"}, "Stop requested")
         return {"FINISHED"}
