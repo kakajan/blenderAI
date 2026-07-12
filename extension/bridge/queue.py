@@ -24,6 +24,22 @@ def _ensure_drain() -> None:
     _drain_registered = True
 
 
+def _timer_override() -> dict[str, Any] | None:
+    """Window/screen override for timer-driven operators (screen may be null)."""
+    ctx = bpy.context
+    window = getattr(ctx, "window", None)
+    screen = getattr(ctx, "screen", None)
+    if window is None or screen is None:
+        wm = ctx.window_manager
+        if not wm or not wm.windows:
+            return None
+        window = wm.windows[0]
+        screen = window.screen
+    if window is None or screen is None:
+        return None
+    return {"window": window, "screen": screen}
+
+
 def _drain():
     global _drain_registered
     import importlib
@@ -33,11 +49,17 @@ def _drain():
     while not _tool_queue.empty():
         item = _tool_queue.get()
         try:
-            bpy.ops.blender_ai.execute_tool(
-                tool=item["tool"],
-                args_json=json.dumps(item.get("args") or {}),
-                request_id=item.get("id") or "",
-            )
+            kwargs = {
+                "tool": item["tool"],
+                "args_json": json.dumps(item.get("args") or {}),
+                "request_id": item.get("id") or "",
+            }
+            override = _timer_override()
+            if override is not None:
+                with bpy.context.temp_override(**override):
+                    bpy.ops.blender_ai.execute_tool(**kwargs)
+            else:
+                bpy.ops.blender_ai.execute_tool(**kwargs)
         except Exception as e:
             from . import client as bridge_client
             from .. import log_client

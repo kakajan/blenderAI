@@ -77,12 +77,18 @@ _TOOL_SPECS: list[ToolSpec] = [
     ToolSpec(name="anim.walk_to_camera", doc="Simple walk-cycle animation helper.", risk="medium", domains=["animation"], tags=["animation"]),
     ToolSpec(
         name="anim.throw_bounce",
-        doc="Throw + ground-bounce animation with camera follow and motion blur.",
+        doc="Throw + ground-bounce animation with camera follow and motion blur. Defaults play=false; pass play=true to start timeline.",
         risk="medium",
         domains=["animation", "camera", "render"],
         tags=["animation", "camera"],
     ),
-    ToolSpec(name="anim.play", doc="Play/stop animation.", risk="low", domains=["animation"], tags=["animation"]),
+    ToolSpec(
+        name="anim.play",
+        doc="Play/stop animation (requires open Blender window/screen; uses context override).",
+        risk="low",
+        domains=["animation"],
+        tags=["animation"],
+    ),
     ToolSpec(name="anim.set_frame", doc="Set current frame.", risk="low", domains=["animation"], tags=["animation"]),
     ToolSpec(
         name="blender.introspect",

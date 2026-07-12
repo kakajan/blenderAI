@@ -1,6 +1,6 @@
 schema_version = "1.0.0"
 id = "blender_ai"
-version = "1.0.0"
+version = "1.0.1"
 name = "BlenderAI"
 tagline = "Professional AI assistant for Blender"
 maintainer = "BlenderAI Contributors"

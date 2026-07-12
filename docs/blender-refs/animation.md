@@ -30,3 +30,8 @@ Also use `animation_data.action_slot` when present. BlenderAI helpers iterate fc
 - `anim.keyframes` — insert/clear keys for location/rotation/scale/custom paths
 - `anim.set_frame` / `anim.play`
 - `anim.throw_bounce` — recipe-style ballistics helper built on keyframe helpers
+- Playback: never call bare `bpy.ops.screen.animation_play()` from the bridge timer.
+  Use a `window`/`screen` `temp_override` (see `_animation_play_safe`). Missing screen
+  context crashes Blender (`ED_screen_animation_play` ACCESS_VIOLATION).
+- `anim.throw_bounce` defaults `play` to `false`; pass `"play": true` only when a UI
+  window is available.

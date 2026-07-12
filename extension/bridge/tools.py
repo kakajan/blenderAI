@@ -2229,11 +2229,10 @@ def _anim_throw_bounce(args: dict[str, Any], context) -> dict[str, Any]:
                     elif args.get("motion_blur", True):
                         space.shading.type = "RENDERED"
 
-    if args.get("play", True):
-        try:
-            bpy.ops.screen.animation_play()
-        except Exception:
-            pass
+    played = False
+    # Default off: timer-driven bridge context often lacks screen; callers opt in.
+    if args.get("play", False):
+        played = _animation_play_safe(context, play=True)
 
     return {
         "ok": True,
@@ -2248,6 +2247,7 @@ def _anim_throw_bounce(args: dict[str, Any], context) -> dict[str, Any]:
         "motion_blur": blur,
         "start": start,
         "velocity": velocity,
+        "playing": played,
     }
 
 
@@ -2354,6 +2354,55 @@ def _anim_walk_to_camera(args: dict[str, Any], context) -> dict[str, Any]:
     }
 
 
+def _wm_play_override(context) -> dict[str, Any] | None:
+    """Resolve window/screen(/area) for operators that require a UI context.
+
+    Tools often run from ``bpy.app.timers`` via ``blender_ai.execute_tool``. That
+    path can leave ``context.screen`` null; ``bpy.ops.screen.animation_play`` then
+    crashes inside ``ED_screen_animation_play`` (ACCESS_VIOLATION on Windows).
+    """
+    window = getattr(context, "window", None)
+    screen = getattr(context, "screen", None)
+    if window is None or screen is None:
+        wm = getattr(context, "window_manager", None) or bpy.context.window_manager
+        windows = getattr(wm, "windows", None) if wm else None
+        if not windows:
+            return None
+        window = windows[0]
+        screen = window.screen
+    if window is None or screen is None:
+        return None
+    override: dict[str, Any] = {"window": window, "screen": screen}
+    for area in screen.areas:
+        if area.type == "VIEW_3D":
+            override["area"] = area
+            for region in area.regions:
+                if region.type == "WINDOW":
+                    override["region"] = region
+                    break
+            break
+    return override
+
+
+def _animation_play_safe(context, *, play: bool = True) -> bool:
+    """Toggle playback only with a valid screen override. Never call bare ops.play."""
+    override = _wm_play_override(context)
+    if override is None:
+        return False
+    screen = override["screen"]
+    playing = bool(getattr(screen, "is_animation_playing", False))
+    if play and playing:
+        return True
+    if not play and not playing:
+        return True
+    try:
+        with context.temp_override(**override):
+            bpy.ops.screen.animation_play()
+        return True
+    except Exception:
+        return False
+
+
 def _anim_play(args: dict[str, Any], context) -> dict[str, Any]:
     scene = context.scene
     start = int(args.get("start_frame") or scene.frame_start)
@@ -2361,12 +2410,18 @@ def _anim_play(args: dict[str, Any], context) -> dict[str, Any]:
     scene.frame_start = start
     scene.frame_end = end
     scene.frame_set(start)
-    if args.get("play", True):
-        try:
-            bpy.ops.screen.animation_play()
-        except Exception as exc:
-            return {"ok": False, "error": str(exc)}
-    return {"ok": True, "playing": bool(args.get("play", True)), "frame_start": start, "frame_end": end}
+    want_play = bool(args.get("play", True))
+    if want_play and not _animation_play_safe(context, play=True):
+        return {
+            "ok": False,
+            "error": "Animation play requires an open Blender window/screen context",
+            "playing": False,
+            "frame_start": start,
+            "frame_end": end,
+        }
+    if not want_play:
+        _animation_play_safe(context, play=False)
+    return {"ok": True, "playing": want_play, "frame_start": start, "frame_end": end}
 
 
 def _anim_set_frame(args: dict[str, Any], context) -> dict[str, Any]:

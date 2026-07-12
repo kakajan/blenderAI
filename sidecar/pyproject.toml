@@ -1,6 +1,6 @@
 [project]
 name = "blender-ai-sidecar"
-version = "1.0.0"
+version = "1.0.1"
 description = "Local AI/MCP sidecar for BlenderAI"
 readme = "README.md"
 requires-python = ">=3.11"
