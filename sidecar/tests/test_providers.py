@@ -279,6 +279,27 @@ async def test_router_builds_cursor_provider(tmp_path):
     await db.close()
 
 
+def test_secrets_tolerates_missing_keyring(monkeypatch):
+    """Headless CI often has keyring's fail backend — must not raise."""
+    from keyring.errors import NoKeyringError
+
+    from blender_ai_sidecar.store import secrets
+
+    def boom(*_args, **_kwargs):
+        raise NoKeyringError("No recommended backend was available.")
+
+    monkeypatch.setattr(secrets.keyring, "get_password", boom)
+    monkeypatch.setattr(secrets.keyring, "set_password", boom)
+    monkeypatch.setattr(secrets.keyring, "delete_password", boom)
+    secrets._memory.clear()
+
+    assert secrets.get_api_key("cursor") == ""
+    secrets.set_api_key("cursor", "sk-test-abcdefgh")
+    assert secrets.get_api_key("cursor") == "sk-test-abcdefgh"
+    secrets.set_api_key("cursor", "")
+    assert secrets.get_api_key("cursor") == ""
+
+
 @pytest.mark.asyncio
 async def test_seed_inserts_missing_opencode(tmp_path):
     from blender_ai_sidecar.store.db import Database
