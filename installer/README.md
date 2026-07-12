@@ -28,7 +28,7 @@ The UI and scripts are **English-only**.
 3. Sidecar → platform data dir (`%APPDATA%\BlenderAI`, macOS Application Support, or `~/.local/share/BlenderAI`)
 4. WebUI static files
 5. Desktop / app-menu shortcut
-6. **Cursor MCP** — registers `blender-ai` in `~/.cursor/mcp.json` (restart Cursor after install)
+6. **MCP clients** — registers `blender-ai` in Cursor, Claude Desktop, Claude Code, Windsurf (if present), and Cline (if present). Restart those apps after install. Manual examples: [docs/mcp.md](../docs/mcp.md)
 
 After install: restart Blender and use the **BlenderAI** N-Panel (no manual Enable needed if auto-enable succeeded).
 

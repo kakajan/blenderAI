@@ -25,7 +25,7 @@ Optional: set repository **Homepage** to that URL under Settings → General.
 | Architecture | [architecture.md](architecture.md) | [architecture.fa.md](architecture.fa.md) |
 | Capability catalog | [capability-catalog.md](capability-catalog.md) | [capability-catalog.fa.md](capability-catalog.fa.md) |
 | Blender refs (RAG) | [blender-refs/](blender-refs/) | — |
-| MCP | [mcp.md](mcp.md) | [mcp.fa.md](mcp.fa.md) |
+| MCP (Cursor, Claude, …) | [mcp.md](mcp.md) | [mcp.fa.md](mcp.fa.md) |
 | Skills | [skills.md](skills.md) | [skills.fa.md](skills.fa.md) |
 | Installer | [../installer/README.md](../installer/README.md) | — (installer UI is English) |
 

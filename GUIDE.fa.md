@@ -127,11 +127,11 @@ python installer/install.py
 
 ## ۶. MCP (Cursor و ایجنت‌ها)
 
-همان صحنه باز بلندر را از Cursor کنترل کنید.
+همان صحنه باز بلندر را از Cursor، Claude Desktop، Claude Code، Windsurf، VS Code، Cline یا هر کلاینت MCP کنترل کنید.
 
-اینستالر می‌تواند `~/.cursor/mcp.json` را بنویسد. بعد از نصب Cursor را ری‌استارت کنید.
+اینستالر می‌تواند تنظیمات MCP را برای **Cursor، Claude Desktop، Claude Code** و کلاینت‌های دیگر بنویسد. بعد از نصب هر اپ را ری‌استارت کنید.
 
-بلندر باز، افزونه فعال، sidecar روشن. راهنمای کامل: [docs/mcp.fa.md](docs/mcp.fa.md).
+بلندر باز، افزونه فعال، sidecar روشن. راهنما و فایل‌های نمونه: [docs/mcp.fa.md](docs/mcp.fa.md).
 
 ---
 

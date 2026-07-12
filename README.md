@@ -163,13 +163,13 @@ In Blender: **Edit → Preferences → Get Extensions → Install from Disk** �
 
 ---
 
-## MCP (Cursor & other agents)
+## MCP (Cursor, Claude Desktop & other agents)
 
-Control the **same open Blender scene** from Cursor, Claude Desktop, or any MCP client.
+Control the **same open Blender scene** from Cursor, Claude Desktop, Claude Code, Windsurf, VS Code, Cline, Continue, or any MCP client.
 
-The **installer configures Cursor automatically** (`~/.cursor/mcp.json`) — restart Cursor after install.
+The **installer configures MCP clients automatically** (Cursor, Claude Desktop, Claude Code, …) — restart each app after install.
 
-See the full guide: [docs/mcp.md](docs/mcp.md)
+See the full guide and example JSON files: [docs/mcp.md](docs/mcp.md)
 
 Keep Blender open with the addon enabled and the sidecar running.
 

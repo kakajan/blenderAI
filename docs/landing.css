@@ -528,6 +528,19 @@ body[dir="rtl"] .prompt-float {
   font-weight: 600;
 }
 
+.mcp-note {
+  margin: 1.25rem 0 0;
+}
+
+.text-link {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.text-link:hover {
+  text-decoration: underline;
+}
+
 .cta-row {
   display: flex;
   flex-wrap: wrap;

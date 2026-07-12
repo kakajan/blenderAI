@@ -176,9 +176,13 @@ npm run dev
 
 ---
 
-## MCP (Cursor و ایجنت‌های دیگر)
+## MCP (Cursor، Claude Desktop و ایجنت‌های دیگر)
 
-راهنمای کامل: [docs/mcp.md](docs/mcp.md) · فارسی: [docs/mcp.fa.md](docs/mcp.fa.md)
+همان صحنهٔ باز بلندر را از Cursor، Claude Desktop، Claude Code، Windsurf، VS Code، Cline، Continue یا هر کلاینت MCP کنترل کنید.
+
+اینستالر کلاینت‌های MCP را به‌صورت خودکار تنظیم می‌کند — بعد از نصب هر اپ را ری‌استارت کنید.
+
+راهنمای کامل و فایل‌های نمونه: [docs/mcp.fa.md](docs/mcp.fa.md) · English: [docs/mcp.md](docs/mcp.md)
 
 بلندر باید باز باشد، افزونه فعال، و sidecar در حال اجرا.
 

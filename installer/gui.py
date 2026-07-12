@@ -191,7 +191,7 @@ class InstallerApp(ctk.CTk):
 
         self.opt_mcp = ctk.CTkCheckBox(
             body,
-            text="Configure Cursor MCP (blender-ai tools)",
+            text="Configure MCP (Cursor, Claude Desktop, Claude Code, …)",
             text_color=COLORS["text"],
             fg_color=COLORS["accent2"],
             hover_color=COLORS["accent"],

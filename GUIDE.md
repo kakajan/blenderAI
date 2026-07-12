@@ -127,11 +127,11 @@ Skills are YAML workflows (modeling, materials, lighting, review, …) under `sk
 
 ## 6. MCP (Cursor & agents)
 
-Control the **same open Blender scene** from Cursor (or any MCP client).
+Control the **same open Blender scene** from Cursor, Claude Desktop, Claude Code, Windsurf, VS Code, Cline, or any MCP client.
 
-The installer can write Cursor’s MCP config (`~/.cursor/mcp.json`). Restart Cursor after install.
+The installer can write MCP config for **Cursor, Claude Desktop, Claude Code**, and other clients when present (`~/.cursor/mcp.json`, `claude_desktop_config.json`, `~/.claude.json`, …). Restart each app after install.
 
-Keep Blender open with the addon enabled and the sidecar running. Full guide: [docs/mcp.md](docs/mcp.md).
+Keep Blender open with the addon enabled and the sidecar running. Full guide + example JSON files: [docs/mcp.md](docs/mcp.md).
 
 Example shape:
 

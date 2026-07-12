@@ -866,30 +866,162 @@ def build_mcp_server_entry(sidecar_dir: Path) -> dict[str, str | list[str]]:
     }
 
 
+def _read_json_object(path: Path) -> dict:
+    if not path.exists():
+        return {}
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        return data if isinstance(data, dict) else {}
+    except Exception:
+        return {}
+
+
+def _write_json_object(path: Path, data: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+
+
+def merge_mcp_servers(cfg_path: Path, entry: dict[str, str | list[str]], *, key: str = "mcpServers") -> Path:
+    """Merge blender-ai into a standard mcpServers-style JSON config."""
+    existing = _read_json_object(cfg_path)
+    servers = dict(existing.get(key) or {})
+    servers["blender-ai"] = entry
+    merged = {**existing, key: servers}
+    _write_json_object(cfg_path, merged)
+    return cfg_path
+
+
+def merge_vscode_mcp(cfg_path: Path, entry: dict[str, str | list[str]]) -> Path:
+    """Merge blender-ai into VS Code Copilot MCP format ({ \"servers\": { ... } })."""
+    existing = _read_json_object(cfg_path)
+    servers = dict(existing.get("servers") or {})
+    servers["blender-ai"] = {
+        "type": "stdio",
+        "command": entry["command"],
+        "args": entry["args"],
+        "cwd": entry["cwd"],
+    }
+    merged = {**existing, "servers": servers}
+    _write_json_object(cfg_path, merged)
+    return cfg_path
+
+
+def claude_desktop_config_paths() -> list[Path]:
+    """Possible Claude Desktop config locations (standard + Windows MSIX)."""
+    home = Path.home()
+    paths: list[Path] = []
+    if os.name == "nt":
+        appdata = Path(os.environ.get("APPDATA") or (home / "AppData" / "Roaming"))
+        local = Path(os.environ.get("LOCALAPPDATA") or (home / "AppData" / "Local"))
+        paths.append(appdata / "Claude" / "claude_desktop_config.json")
+        packages = local / "Packages"
+        if packages.is_dir():
+            for pkg in packages.glob("Claude_*"):
+                candidate = pkg / "LocalCache" / "Roaming" / "Claude" / "claude_desktop_config.json"
+                paths.append(candidate)
+    elif sys.platform == "darwin":
+        paths.append(home / "Library" / "Application Support" / "Claude" / "claude_desktop_config.json")
+    else:
+        paths.append(home / ".config" / "Claude" / "claude_desktop_config.json")
+    # Deduplicate while preserving order
+    seen: set[str] = set()
+    out: list[Path] = []
+    for p in paths:
+        key = str(p.resolve()) if p.parent.exists() else str(p)
+        if key not in seen:
+            seen.add(key)
+            out.append(p)
+    return out
+
+
+def windsurf_mcp_config_path() -> Path:
+    return Path.home() / ".codeium" / "windsurf" / "mcp_config.json"
+
+
+def claude_code_user_config_path() -> Path:
+    return Path.home() / ".claude.json"
+
+
+def cline_mcp_config_path() -> Path | None:
+    """Cline / Roo-style MCP settings inside VS Code / Cursor extension storage."""
+    home = Path.home()
+    candidates: list[Path] = []
+    if os.name == "nt":
+        appdata = Path(os.environ.get("APPDATA") or (home / "AppData" / "Roaming"))
+        candidates.extend(
+            [
+                appdata / "Code" / "User" / "globalStorage" / "saoudrizwan.claude-dev" / "settings" / "cline_mcp_settings.json",
+                appdata / "Cursor" / "User" / "globalStorage" / "saoudrizwan.claude-dev" / "settings" / "cline_mcp_settings.json",
+                appdata / "Code" / "User" / "globalStorage" / "rooveterinaryinc.roo-cline" / "settings" / "mcp_settings.json",
+            ]
+        )
+    elif sys.platform == "darwin":
+        support = home / "Library" / "Application Support"
+        candidates.extend(
+            [
+                support / "Code" / "User" / "globalStorage" / "saoudrizwan.claude-dev" / "settings" / "cline_mcp_settings.json",
+                support / "Cursor" / "User" / "globalStorage" / "saoudrizwan.claude-dev" / "settings" / "cline_mcp_settings.json",
+            ]
+        )
+    else:
+        config = home / ".config"
+        candidates.extend(
+            [
+                config / "Code" / "User" / "globalStorage" / "saoudrizwan.claude-dev" / "settings" / "cline_mcp_settings.json",
+                config / "Cursor" / "User" / "globalStorage" / "saoudrizwan.claude-dev" / "settings" / "cline_mcp_settings.json",
+            ]
+        )
+    for path in candidates:
+        if path.parent.exists() or path.exists():
+            return path
+    return None
+
+
 def install_cursor_mcp(sidecar_dir: Path, progress: ProgressCb | None = None) -> Path:
     """Register BlenderAI MCP server in Cursor (~/.cursor/mcp.json)."""
-    _progress(progress, "Configuring Cursor MCP…", 0.88)
-    cfg_path = cursor_mcp_config_path()
-    cfg_path.parent.mkdir(parents=True, exist_ok=True)
-    existing: dict = {}
-    if cfg_path.exists():
-        try:
-            existing = json.loads(cfg_path.read_text(encoding="utf-8"))
-        except Exception:
-            existing = {}
-    servers = dict(existing.get("mcpServers") or {})
-    servers["blender-ai"] = build_mcp_server_entry(sidecar_dir)
-    merged = {**existing, "mcpServers": servers}
-    cfg_path.write_text(json.dumps(merged, indent=2) + "\n", encoding="utf-8")
-
+    entry = build_mcp_server_entry(sidecar_dir)
+    cfg_path = merge_mcp_servers(cursor_mcp_config_path(), entry)
     if (repo_root() / "extension" / "blender_manifest.toml").exists():
         repo_mcp = repo_root() / ".cursor" / "mcp.json"
-        repo_mcp.parent.mkdir(parents=True, exist_ok=True)
-        repo_mcp.write_text(
-            json.dumps({"mcpServers": {"blender-ai": servers["blender-ai"]}}, indent=2) + "\n",
-            encoding="utf-8",
-        )
+        _write_json_object(repo_mcp, {"mcpServers": {"blender-ai": entry}})
     return cfg_path
+
+
+def install_mcp_clients(sidecar_dir: Path, progress: ProgressCb | None = None) -> list[tuple[str, Path]]:
+    """Register blender-ai MCP in Cursor, Claude Desktop, Claude Code, Windsurf, Cline when possible."""
+    _progress(progress, "Configuring MCP clients…", 0.88)
+    entry = build_mcp_server_entry(sidecar_dir)
+    configured: list[tuple[str, Path]] = []
+
+    cursor_path = install_cursor_mcp(sidecar_dir, progress=None)
+    configured.append(("Cursor", cursor_path))
+
+    # Claude Desktop: write standard path always; also merge into any discovered MSIX path
+    desktop_paths = claude_desktop_config_paths()
+    written_desktop: set[str] = set()
+    for i, path in enumerate(desktop_paths):
+        # Always create the primary path; only touch extras if parent already exists
+        if i == 0 or path.exists() or path.parent.exists():
+            merge_mcp_servers(path, entry)
+            key = str(path)
+            if key not in written_desktop:
+                written_desktop.add(key)
+                configured.append(("Claude Desktop", path))
+
+    claude_code_path = merge_mcp_servers(claude_code_user_config_path(), entry)
+    configured.append(("Claude Code", claude_code_path))
+
+    windsurf_dir = windsurf_mcp_config_path().parent
+    if windsurf_dir.exists() or windsurf_mcp_config_path().exists():
+        windsurf_path = merge_mcp_servers(windsurf_mcp_config_path(), entry)
+        configured.append(("Windsurf", windsurf_path))
+
+    cline_path = cline_mcp_config_path()
+    if cline_path is not None:
+        merge_mcp_servers(cline_path, entry)
+        configured.append(("Cline", cline_path))
+
+    return configured
 
 
 def _desktop_dir() -> Path:
@@ -1030,9 +1162,12 @@ def run_install(opts: InstallOptions, progress: ProgressCb | None = None) -> Ins
                 create_shortcuts(side, progress)
                 result.messages.append("Shortcuts created")
             if opts.install_mcp:
-                mcp_path = install_cursor_mcp(side, progress)
-                result.messages.append(f"Cursor MCP configured → {mcp_path}")
-                result.messages.append("Restart Cursor to load the blender-ai MCP server.")
+                mcp_targets = install_mcp_clients(side, progress)
+                for label, mcp_path in mcp_targets:
+                    result.messages.append(f"{label} MCP configured → {mcp_path}")
+                result.messages.append(
+                    "Restart Cursor / Claude Desktop / Claude Code / Windsurf / Cline to load blender-ai."
+                )
 
         # Patch config so sidecar finds skills in APPDATA
         _write_sidecar_launcher_env()
