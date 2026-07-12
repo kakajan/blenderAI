@@ -1,0 +1,18 @@
+id: modeling.blockout
+version: 1
+name: Blockout
+domains: [modeling]
+tools:
+  - scene.create_object
+  - selection.set
+  - object.transform
+  - object.duplicate
+  - object.delete
+  - collection.organize
+  - scene.reference_image
+system_prompt: presets/modeling/blockout.md
+risk: low
+requires_confirmation: false
+viewport_capture: optional
+max_steps: 16
+description: Fast massing and silhouette blockout with named primitives.

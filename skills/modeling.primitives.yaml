@@ -3,8 +3,8 @@ version: 1
 name: Primitives
 domains: [modeling]
 tools: [scene.create_object]
-system_prompt: presets/modeling/create_mesh.md
+system_prompt: presets/modeling/primitives_only.md
 risk: low
 requires_confirmation: false
 viewport_capture: false
-description: Add cube, sphere, cylinder, cone, torus, plane, and empty helpers.
+description: Add ONLY simple primitives (cube/sphere/cylinder). For detailed objects use Create Mesh instead.

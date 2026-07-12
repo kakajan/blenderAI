@@ -30,9 +30,11 @@ Custom skills are stored under your OS data folder:
 
 | OS | Path |
 |----|------|
-| Windows | `%APPDATA%\BlenderAI\user_skills\` |
-| macOS | `~/Library/Application Support/BlenderAI/user_skills/` |
-| Linux | `~/.local/share/BlenderAI/user_skills/` |
+| Windows | `%APPDATA%\BlenderAI\user_skills\` **or** `%APPDATA%\BlenderAI\skills_user\` |
+| macOS | `~/Library/Application Support/BlenderAI/user_skills/` (also `skills_user/`) |
+| Linux | `~/.local/share/BlenderAI/user_skills/` (also `skills_user/`) |
+
+Both folders are hot-loaded; call `POST /api/skills/reload` after dropping files. Skills may only name **allowlisted** tools (see [capability-catalog.md](capability-catalog.md)). Adaptive learning injects past recipes + `docs/blender-refs/` notes; it never executes freeform Python.
 
 Each skill is a YAML file plus `prompts/<id>.md`.
 

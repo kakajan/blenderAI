@@ -7,6 +7,7 @@ import os
 import shutil
 import subprocess
 import sys
+import time
 import zipfile
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -53,6 +54,7 @@ class InstallOptions:
     build_webui: bool = True
     enable_extension: bool = True
     create_shortcuts: bool = True
+    install_mcp: bool = True
 
 
 @dataclass
@@ -280,6 +282,8 @@ def build_extension_zip(dest_zip: Path, progress: ProgressCb | None = None) -> P
     src = repo_root() / "extension"
     if not (src / "blender_manifest.toml").exists():
         raise FileNotFoundError("extension/blender_manifest.toml missing")
+    if not (src / "__init__.py").exists():
+        raise FileNotFoundError("extension/__init__.py missing (flat layout required)")
     dest_zip.parent.mkdir(parents=True, exist_ok=True)
     if dest_zip.exists():
         dest_zip.unlink()
@@ -289,35 +293,109 @@ def build_extension_zip(dest_zip: Path, progress: ProgressCb | None = None) -> P
             if path.is_file():
                 if "__pycache__" in path.parts or path.suffix == ".pyc":
                     continue
+                if path.name == "install_info.json":
+                    continue
                 zf.write(path, path.relative_to(src).as_posix())
     return dest_zip
 
 
 def install_extension_copy(blender: BlenderInstall, progress: ProgressCb | None = None) -> Path:
-    """Copy extension into user_default/blender_ai (reliable fallback)."""
+    """Copy flat extension package into user_default/blender_ai.
+
+    Blender requires ``blender_manifest.toml`` and ``__init__.py`` in the same
+    directory (see developer.blender.org extensions handbook).
+    """
     target_root = blender.extensions_user_default
     target_root.mkdir(parents=True, exist_ok=True)
     target = target_root / "blender_ai"
     src = repo_root() / "extension"
     _progress(progress, f"Installing extension → {target}", 0.35)
+    if not (src / "blender_manifest.toml").exists() or not (src / "__init__.py").exists():
+        raise FileNotFoundError(
+            "extension/ must contain blender_manifest.toml and __init__.py at the root"
+        )
     if target.exists():
         shutil.rmtree(target)
-    # Extension folder must contain manifest + package
     target.mkdir(parents=True)
-    shutil.copy2(src / "blender_manifest.toml", target / "blender_manifest.toml")
-    shutil.copytree(src / "blender_ai", target / "blender_ai")
-    # Write install marker with sidecar path
+
+    ignore = shutil.ignore_patterns("__pycache__", "*.pyc", "*.zip", ".git", "install_info.json")
+    for item in src.iterdir():
+        if item.name in ("__pycache__",) or item.suffix in (".pyc", ".zip"):
+            continue
+        if item.name == "install_info.json":
+            continue
+        dest = target / item.name
+        if item.is_dir():
+            shutil.copytree(item, dest, ignore=ignore)
+        elif item.is_file():
+            shutil.copy2(item, dest)
+
     marker = {
         "sidecar_dir": str(appdata_blenderai() / "sidecar"),
         "data_dir": str(appdata_blenderai()),
         "installed_by": "BlenderAI Installer",
     }
-    (target / "blender_ai" / "install_info.json").write_text(json.dumps(marker, indent=2), encoding="utf-8")
+    marker_text = json.dumps(marker, indent=2)
+    # Convenience copy next to package (optional) + canonical AppData copy
+    (target / "install_info.json").write_text(marker_text, encoding="utf-8")
+    (appdata_blenderai() / "install_info.json").write_text(marker_text, encoding="utf-8")
     return target
 
 
+EXTENSION_MODULE_CANDIDATES = (
+    "bl_ext.user_default.blender_ai",
+    "blender_ai",
+)
+
+_ENABLE_PY = """\
+import addon_utils
+import bpy
+
+candidates = __CANDIDATES__
+ok = False
+try:
+    addon_utils.modules_refresh()
+except Exception:
+    pass
+
+for mod in candidates:
+    try:
+        try:
+            addon_utils.enable(mod, default_set=True, persistent=True)
+        except TypeError:
+            addon_utils.enable(mod, default_set=True)
+    except Exception as exc:
+        print("ENABLE_ERR", mod, exc)
+        continue
+    keys = list(bpy.context.preferences.addons.keys())
+    if mod in keys or any(mod in k for k in keys):
+        ok = True
+        print("ENABLED", mod)
+        break
+
+if not ok:
+    for mod in candidates:
+        try:
+            bpy.ops.preferences.addon_enable(module=mod)
+            ok = True
+            print("OPS_ENABLED", mod)
+            break
+        except Exception as exc:
+            print("OPS_ERR", mod, exc)
+
+try:
+    bpy.ops.wm.save_userpref()
+    print("SAVED_PREFS")
+except Exception as exc:
+    print("SAVE_PREFS_ERR", exc)
+
+raise SystemExit(0 if ok else 1)
+"""
+
+
 def try_cli_install(blender: BlenderInstall, zip_path: Path, progress: ProgressCb | None = None) -> bool:
-    _progress(progress, "Trying Blender CLI extension install…", 0.3)
+    """Install from zip into user_default and enable (official Blender CLI)."""
+    _progress(progress, "Trying Blender CLI extension install + enable…", 0.3)
     cmd = [
         str(blender.blender_exe),
         "--command",
@@ -329,58 +407,354 @@ def try_cli_install(blender: BlenderInstall, zip_path: Path, progress: ProgressC
         str(zip_path),
     ]
     try:
-        subprocess.run(cmd, check=True, capture_output=True, text=True, timeout=120)
-        return True
-    except Exception:
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+        if proc.returncode == 0:
+            return True
+        err = (proc.stderr or proc.stdout or "").strip()
+        if err:
+            _progress(progress, f"CLI install note: {err[:200]}", 0.32)
         return False
+    except Exception as exc:
+        _progress(progress, f"CLI install failed: {exc}", 0.32)
+        return False
+
+
+def try_enable_via_python(blender: BlenderInstall, progress: ProgressCb | None = None) -> bool:
+    """Enable BlenderAI in user preferences via background Blender Python."""
+    _progress(progress, "Enabling BlenderAI in Blender preferences…", 0.42)
+    script = appdata_blenderai() / "cache" / "enable_blender_ai.py"
+    script.parent.mkdir(parents=True, exist_ok=True)
+    script.write_text(
+        _ENABLE_PY.replace("__CANDIDATES__", repr(list(EXTENSION_MODULE_CANDIDATES))),
+        encoding="utf-8",
+    )
+    cmd = [
+        str(blender.blender_exe),
+        "--background",
+        "--offline-mode",
+        "--python",
+        str(script),
+        "--python-exit-code",
+        "1",
+    ]
+    try:
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=180)
+        out = ((proc.stdout or "") + "\n" + (proc.stderr or "")).strip()
+        if proc.returncode == 0 and ("ENABLED" in out or "OPS_ENABLED" in out):
+            return True
+        if out:
+            # Keep log short for the installer UI
+            tail = "\n".join(out.splitlines()[-8:])
+            _progress(progress, f"Enable script: {tail[:300]}", 0.43)
+        return False
+    except Exception as exc:
+        _progress(progress, f"Enable via Python failed: {exc}", 0.43)
+        return False
+
+
+def enable_extension(
+    blender: BlenderInstall,
+    zip_path: Path,
+    progress: ProgressCb | None = None,
+) -> bool:
+    """Ensure BlenderAI is enabled after files are on disk (CLI, then Python fallback)."""
+    if try_cli_install(blender, zip_path, progress):
+        return True
+    return try_enable_via_python(blender, progress)
+
+
+def _pids_listening_on_port(port: int) -> set[int]:
+    """Best-effort PIDs bound to TCP port (Windows / Unix)."""
+    pids: set[int] = set()
+    if os.name == "nt":
+        # netstat is more reliable than Get-NetTCPConnection (no admin / module quirks)
+        try:
+            out = subprocess.check_output(
+                ["netstat", "-ano", "-p", "tcp"],
+                text=True,
+                stderr=subprocess.DEVNULL,
+                timeout=15,
+            )
+            needle = f":{port}"
+            for line in out.splitlines():
+                if "LISTENING" not in line.upper():
+                    continue
+                parts = line.split()
+                if len(parts) < 5:
+                    continue
+                local = parts[1]
+                if not local.endswith(needle):
+                    continue
+                pid_s = parts[-1]
+                if pid_s.isdigit():
+                    pids.add(int(pid_s))
+        except Exception:
+            pass
+        try:
+            out = subprocess.check_output(
+                [
+                    "powershell",
+                    "-NoProfile",
+                    "-Command",
+                    f"(Get-NetTCPConnection -LocalPort {port} -State Listen -ErrorAction SilentlyContinue)"
+                    f".OwningProcess | Select-Object -Unique",
+                ],
+                text=True,
+                stderr=subprocess.DEVNULL,
+                timeout=15,
+            )
+            for line in out.splitlines():
+                line = line.strip()
+                if line.isdigit():
+                    pids.add(int(line))
+        except Exception:
+            pass
+        return pids
+    try:
+        out = subprocess.check_output(
+            ["lsof", "-ti", f"TCP:{port}", "-sTCP:LISTEN"],
+            text=True,
+            stderr=subprocess.DEVNULL,
+            timeout=10,
+        )
+        for line in out.splitlines():
+            line = line.strip()
+            if line.isdigit():
+                pids.add(int(line))
+    except Exception:
+        pass
+    return pids
+
+
+def _pids_matching_sidecar() -> set[int]:
+    """PIDs whose command line looks like the BlenderAI sidecar."""
+    pids: set[int] = set()
+    markers = ("blender_ai_sidecar", "blenderai\\sidecar", "blenderai/sidecar")
+    if os.name == "nt":
+        try:
+            out = subprocess.check_output(
+                [
+                    "powershell",
+                    "-NoProfile",
+                    "-Command",
+                    "Get-CimInstance Win32_Process "
+                    "-Filter \"Name='python.exe' OR Name='pythonw.exe' OR Name='uvicorn.exe'\" "
+                    "| ForEach-Object { '{0}`t{1}' -f $_.ProcessId, $_.CommandLine }",
+                ],
+                text=True,
+                stderr=subprocess.DEVNULL,
+                timeout=20,
+            )
+            for line in out.splitlines():
+                low = line.lower()
+                if not any(m in low for m in markers):
+                    continue
+                pid_s = line.split("\t", 1)[0].strip()
+                if pid_s.isdigit():
+                    pids.add(int(pid_s))
+        except Exception:
+            pass
+        return pids
+    try:
+        out = subprocess.check_output(["ps", "-ax", "-o", "pid=,command="], text=True, timeout=10)
+        for line in out.splitlines():
+            low = line.lower()
+            if not any(m in low for m in markers):
+                continue
+            parts = line.strip().split(None, 1)
+            if parts and parts[0].isdigit():
+                pids.add(int(parts[0]))
+    except Exception:
+        pass
+    return pids
+
+
+def _kill_pids(pids: set[int]) -> None:
+    me = os.getpid()
+    for pid in sorted(pids):
+        if pid <= 0 or pid == me:
+            continue
+        try:
+            if os.name == "nt":
+                subprocess.run(
+                    ["taskkill", "/F", "/T", "/PID", str(pid)],
+                    check=False,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    timeout=15,
+                )
+            else:
+                os.kill(pid, 15)
+        except Exception:
+            pass
+
+
+def stop_running_sidecar(port: int = 8765, progress: ProgressCb | None = None) -> None:
+    """Stop a live sidecar so AppData files can be replaced on reinstall."""
+    pids = _pids_listening_on_port(port) | _pids_matching_sidecar()
+    if not pids:
+        return
+    _progress(progress, "Stopping running sidecar…", 0.48)
+    _kill_pids(pids)
+    # Windows often needs a beat to release DLL / .pyd locks
+    for _ in range(10):
+        time.sleep(0.35)
+        leftover = _pids_listening_on_port(port) | _pids_matching_sidecar()
+        if not leftover:
+            break
+        _kill_pids(leftover)
+
+
+def _rmtree_retry(path: Path, *, retries: int = 12, delay: float = 0.4) -> None:
+    """Remove a directory tree; retry briefly for Windows file locks."""
+    if not path.exists():
+        return
+    last: OSError | None = None
+    for i in range(retries):
+        try:
+            shutil.rmtree(path)
+            return
+        except OSError as exc:
+            last = exc
+            if i in (2, 5, 8):
+                stop_running_sidecar()
+            time.sleep(delay * (1 + i * 0.35))
+    if path.exists():
+        raise RuntimeError(
+            f"Cannot remove {path} (still in use). "
+            "Close BlenderAI Chat UI / stop the sidecar (N-Panel → Stop), then retry."
+        ) from last
+
+
+def _clear_sidecar_contents(dest: Path) -> None:
+    """Delete everything under dest except a preserved .venv (in-place update)."""
+    if not dest.exists():
+        return
+    for child in list(dest.iterdir()):
+        if child.name == ".venv":
+            continue
+        if child.is_dir():
+            _rmtree_retry(child)
+        else:
+            for _ in range(8):
+                try:
+                    child.unlink()
+                    break
+                except OSError:
+                    stop_running_sidecar()
+                    time.sleep(0.35)
+
+
+def _overlay_copytree(src: Path, dest: Path, *, ignore_dir_names: set[str] | None = None) -> None:
+    """Copy src into dest (create or overlay). Used when rmtree of dest may fail."""
+    if not src.exists():
+        return
+    skip = set(ignore_dir_names or ())
+    if not dest.exists():
+        patterns = list(skip | {"__pycache__"}) + ["*.egg-info", "*.pyc"]
+        shutil.copytree(src, dest, ignore=shutil.ignore_patterns(*patterns))
+        return
+    for root, dirs, files in os.walk(src):
+        rel = Path(root).relative_to(src)
+        dirs[:] = [
+            d for d in dirs if d not in skip and d != "__pycache__" and not d.endswith(".egg-info")
+        ]
+        target_dir = dest / rel
+        target_dir.mkdir(parents=True, exist_ok=True)
+        for name in files:
+            if name.endswith(".pyc"):
+                continue
+            shutil.copy2(Path(root) / name, target_dir / name)
+
+
+def _copy_sidecar_sources(src: Path, dest: Path) -> None:
+    ignore = shutil.ignore_patterns(".venv", "__pycache__", "*.egg-info", ".pytest_cache")
+    if not dest.exists():
+        shutil.copytree(src, dest, ignore=ignore)
+        return
+    # Overlay into existing tree (avoids deleting a locked root folder)
+    _overlay_copytree(src, dest, ignore_dir_names={".venv", "__pycache__", ".pytest_cache"})
 
 
 def install_sidecar(progress: ProgressCb | None = None) -> Path:
     dest = appdata_blenderai() / "sidecar"
     src = repo_root() / "sidecar"
-    _progress(progress, "Copying sidecar…", 0.5)
-    if dest.exists():
-        # keep venv if present
-        venv = dest / ".venv"
-        tmp_venv = appdata_blenderai() / "_venv_backup"
-        if venv.exists():
-            if tmp_venv.exists():
-                shutil.rmtree(tmp_venv, ignore_errors=True)
-            shutil.move(str(venv), str(tmp_venv))
-        shutil.rmtree(dest, ignore_errors=True)
-    shutil.copytree(
-        src,
-        dest,
-        ignore=shutil.ignore_patterns(".venv", "__pycache__", "*.egg-info", ".pytest_cache"),
-    )
-    # restore venv
-    tmp_venv = appdata_blenderai() / "_venv_backup"
-    if tmp_venv.exists():
-        shutil.move(str(tmp_venv), str(dest / ".venv"))
+    data = appdata_blenderai()
+    tmp_venv = data / "_venv_backup"
 
-    # copy skills & presets next to data
+    # Running sidecar locks files under dest → WinError 183 on copytree.
+    stop_running_sidecar(progress=progress)
+    _progress(progress, "Copying sidecar…", 0.5)
+
+    if dest.exists():
+        venv = dest / ".venv"
+        if venv.exists():
+            try:
+                if tmp_venv.exists():
+                    _rmtree_retry(tmp_venv)
+                shutil.move(str(venv), str(tmp_venv))
+            except OSError:
+                # Keep .venv in place; update package files around it
+                pass
+
+        try:
+            _rmtree_retry(dest)
+        except RuntimeError:
+            _progress(progress, "Sidecar folder locked — updating files in place…", 0.52)
+            stop_running_sidecar(progress=progress)
+            _clear_sidecar_contents(dest)
+
+    if dest.exists():
+        _clear_sidecar_contents(dest)
+
+    _copy_sidecar_sources(src, dest)
+
+    # Restore preserved venv (including leftover backup from a prior failed install)
+    if tmp_venv.exists():
+        target_venv = dest / ".venv"
+        if target_venv.exists() and target_venv.resolve() != tmp_venv.resolve():
+            try:
+                _rmtree_retry(target_venv)
+            except RuntimeError:
+                pass
+        if not (dest / ".venv").exists():
+            try:
+                shutil.move(str(tmp_venv), str(dest / ".venv"))
+            except OSError:
+                pass
+        elif tmp_venv.exists():
+            try:
+                _rmtree_retry(tmp_venv)
+            except RuntimeError:
+                pass
+
+    # copy skills & presets next to data (overlay if remove fails / dir locked)
     for name in ("skills", "presets"):
         s = repo_root() / name
-        d = appdata_blenderai() / name
+        d = data / name
+        if not s.exists():
+            continue
         if d.exists():
-            shutil.rmtree(d)
-        if s.exists():
-            shutil.copytree(s, d)
+            try:
+                _rmtree_retry(d)
+            except RuntimeError:
+                pass
+        _overlay_copytree(s, d)
 
     venv_py = _ensure_venv(dest, progress)
     _progress(progress, "Installing Python packages…", 0.65)
     subprocess.check_call([str(venv_py), "-m", "pip", "install", "-U", "pip", "setuptools", "wheel"])
-    subprocess.check_call([str(venv_py), "-m", "pip", "install", "-e", str(dest)])
+    subprocess.check_call([str(venv_py), "-m", "pip", "install", "-e", f"{dest}[mcp]"])
 
     # Write env pointer for skills paths
     cfg = {
-        "skills_dir": str(appdata_blenderai() / "skills"),
-        "presets_dir": str(appdata_blenderai() / "presets"),
-        "webui_dist": str(appdata_blenderai() / "webui" / "dist"),
+        "skills_dir": str(data / "skills"),
+        "presets_dir": str(data / "presets"),
+        "webui_dist": str(data / "webui" / "dist"),
         "host": "127.0.0.1",
         "port": 8765,
     }
-    (appdata_blenderai() / "install.json").write_text(json.dumps(cfg, indent=2), encoding="utf-8")
+    (data / "install.json").write_text(json.dumps(cfg, indent=2), encoding="utf-8")
     return dest
 
 
@@ -477,6 +851,45 @@ def _venv_python(sidecar_dir: Path) -> Path:
     if os.name == "nt":
         return sidecar_dir / ".venv" / "Scripts" / "python.exe"
     return sidecar_dir / ".venv" / "bin" / "python"
+
+
+def cursor_mcp_config_path() -> Path:
+    return Path.home() / ".cursor" / "mcp.json"
+
+
+def build_mcp_server_entry(sidecar_dir: Path) -> dict[str, str | list[str]]:
+    py = _venv_python(sidecar_dir)
+    return {
+        "command": str(py.resolve()),
+        "args": ["-m", "blender_ai_sidecar.main", "mcp", "--stdio"],
+        "cwd": str(sidecar_dir.resolve()),
+    }
+
+
+def install_cursor_mcp(sidecar_dir: Path, progress: ProgressCb | None = None) -> Path:
+    """Register BlenderAI MCP server in Cursor (~/.cursor/mcp.json)."""
+    _progress(progress, "Configuring Cursor MCP…", 0.88)
+    cfg_path = cursor_mcp_config_path()
+    cfg_path.parent.mkdir(parents=True, exist_ok=True)
+    existing: dict = {}
+    if cfg_path.exists():
+        try:
+            existing = json.loads(cfg_path.read_text(encoding="utf-8"))
+        except Exception:
+            existing = {}
+    servers = dict(existing.get("mcpServers") or {})
+    servers["blender-ai"] = build_mcp_server_entry(sidecar_dir)
+    merged = {**existing, "mcpServers": servers}
+    cfg_path.write_text(json.dumps(merged, indent=2) + "\n", encoding="utf-8")
+
+    if (repo_root() / "extension" / "blender_manifest.toml").exists():
+        repo_mcp = repo_root() / ".cursor" / "mcp.json"
+        repo_mcp.parent.mkdir(parents=True, exist_ok=True)
+        repo_mcp.write_text(
+            json.dumps({"mcpServers": {"blender-ai": servers["blender-ai"]}}, indent=2) + "\n",
+            encoding="utf-8",
+        )
+    return cfg_path
 
 
 def _desktop_dir() -> Path:
@@ -591,15 +1004,20 @@ def run_install(opts: InstallOptions, progress: ProgressCb | None = None) -> Ins
         zip_path = appdata_blenderai() / "cache" / "blender_ai_extension.zip"
         build_extension_zip(zip_path, progress)
 
-        cli_ok = False
-        if opts.enable_extension:
-            cli_ok = try_cli_install(opts.blender, zip_path, progress)
-        # Always ensure copy install (CLI may place differently; copy is deterministic)
+        # Deterministic file install first, then enable in Blender preferences
         ext_path = install_extension_copy(opts.blender, progress)
         result.extension_path = ext_path
-        result.messages.append(
-            "Extension installed via Blender CLI" if cli_ok else "Extension copied to user_default"
-        )
+        result.messages.append(f"Extension installed → {ext_path}")
+
+        enabled = False
+        if opts.enable_extension:
+            enabled = enable_extension(opts.blender, zip_path, progress)
+            if enabled:
+                result.messages.append("BlenderAI enabled in Blender preferences.")
+            else:
+                result.messages.append(
+                    "Auto-enable failed. In Blender: Preferences → Get Extensions → enable BlenderAI."
+                )
 
         if opts.install_sidecar:
             side = install_sidecar(progress)
@@ -611,12 +1029,19 @@ def run_install(opts: InstallOptions, progress: ProgressCb | None = None) -> Ins
             if opts.create_shortcuts:
                 create_shortcuts(side, progress)
                 result.messages.append("Shortcuts created")
+            if opts.install_mcp:
+                mcp_path = install_cursor_mcp(side, progress)
+                result.messages.append(f"Cursor MCP configured → {mcp_path}")
+                result.messages.append("Restart Cursor to load the blender-ai MCP server.")
 
         # Patch config so sidecar finds skills in APPDATA
         _write_sidecar_launcher_env()
         _progress(progress, "Done", 1.0)
         result.ok = True
-        result.messages.append("Restart Blender, then enable BlenderAI if needed.")
+        if enabled:
+            result.messages.append("Restart Blender, then open N-Panel (N) → BlenderAI.")
+        else:
+            result.messages.append("Restart Blender after enabling BlenderAI.")
         return result
     except Exception as e:
         result.messages.append(str(e))

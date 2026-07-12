@@ -32,3 +32,13 @@ English: [architecture.md](architecture.md)
 - ابزار allowlisted بر اجرای آزاد Python اولویت دارد.
 - کلیدها در keyring سیستم.
 - زبان پیش‌فرض محصول انگلیسی است؛ WebUI از فارسی و RTL مستقل پشتیبانی می‌کند.
+
+## لایه‌های قابلیت (primitive در برابر recipe در برابر adaptive)
+
+جزئیات: [capability-catalog.md](capability-catalog.md) · [capability-catalog.fa.md](capability-catalog.fa.md) · [blender-refs/](blender-refs/)
+
+- **Primitive**: ابزار ثابت و allowlisted در Bridge؛ با انتشار محصول بزرگ می‌شود.
+- **Recipe / Skill**: YAML رسمی یا `%APPDATA%/BlenderAI/user_skills/`؛ فقط نام ابزارهای مجاز.
+- **Adaptive**: recipe شخصی، RAG از `docs/blender-refs/`، `blender.introspect` فقط‌خواندنی، ثبت capability gap.
+
+انجام نمی‌دهیم: `exec` آزاد، نوشتن خودکار handler داخل پوشهٔ افزونه، دور زدن allowlist.

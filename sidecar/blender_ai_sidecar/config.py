@@ -60,6 +60,10 @@ class Settings(BaseSettings):
     skills_dir: Path = Field(default_factory=lambda: _path_from_install("skills_dir", repo_root() / "skills"))
     presets_dir: Path = Field(default_factory=lambda: _path_from_install("presets_dir", repo_root() / "presets"))
     user_skills_dir: Path = Field(default_factory=lambda: _default_data_dir() / "user_skills")
+    user_presets_dir: Path = Field(default_factory=lambda: _default_data_dir() / "user_presets")
+    # Alias path from product docs (`skills_user/`); also scanned by SkillEngine.
+    skills_user_dir: Path = Field(default_factory=lambda: _default_data_dir() / "skills_user")
+    knowledge_dir: Path = Field(default_factory=lambda: _default_data_dir() / "knowledge")
     webui_dist: Path = Field(
         default_factory=lambda: _path_from_install("webui_dist", repo_root() / "webui" / "dist")
     )

@@ -1,0 +1,13 @@
+id: workflow.turnaround_character
+name: Turnaround Character (3-view verified)
+steps:
+  - skill: modeling.turnaround_character
+    prompt: >
+      Build the character from the user's reference images. Use integrated silhouettes,
+      flush lavender/purple zones, layered glossy eyes, soft fur, orange beak/feet, peach
+      studio lighting. Capture front/side/back after major steps and fix the weakest view.
+      Reuse any relevant learnings from past sessions shown in the system prompt.
+  - skill: review.critique
+    prompt: >
+      Compare the final front, side, and back captures against the reference images.
+      Score each view 1-5. List specific proportion/material fixes still needed.

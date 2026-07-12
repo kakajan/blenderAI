@@ -2,9 +2,9 @@ id: lighting.three_point
 version: 1
 name: Three-Point Lighting
 domains: [lighting]
-tools: [scene.create_object, light.set, collection.organize]
+tools: [scene.create_object, light.set, camera.set, collection.organize, world.set]
 system_prompt: presets/lighting/product_shot.md
 risk: low
 requires_confirmation: false
 viewport_capture: optional
-description: Set up key, fill, and rim lights for the active subject.
+description: Set up key, fill, and rim lights plus camera for the active subject.

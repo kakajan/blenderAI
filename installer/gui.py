@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import sys
 import threading
-import webbrowser
 from pathlib import Path
 
 # Allow running as script
@@ -66,29 +65,6 @@ class InstallerApp(ctk.CTk):
 
         foot_inner = ctk.CTkFrame(foot, fg_color="transparent")
         foot_inner.pack(fill="both", expand=True, padx=16, pady=8)
-
-        left_actions = ctk.CTkFrame(foot_inner, fg_color="transparent")
-        left_actions.pack(side="left", fill="y")
-
-        self.open_chat_btn = ctk.CTkButton(
-            left_actions,
-            text="Open Chat UI",
-            command=self._open_chat_ui,
-            fg_color=COLORS["bg2"],
-            hover_color="#2c3240",
-            text_color=COLORS["text"],
-            width=140,
-            height=40,
-        )
-        self.open_chat_btn.pack(side="left")
-
-        ctk.CTkLabel(
-            left_actions,
-            text="Starts sidecar if needed · http://127.0.0.1:8765",
-            font=ctk.CTkFont(size=11),
-            text_color=COLORS["muted"],
-            anchor="w",
-        ).pack(side="left", padx=(10, 0))
 
         self.install_btn = ctk.CTkButton(
             foot_inner,
@@ -213,6 +189,26 @@ class InstallerApp(ctk.CTk):
         self.opt_shortcuts.select()
         self.opt_shortcuts.pack(anchor="w", padx=14, pady=3)
 
+        self.opt_mcp = ctk.CTkCheckBox(
+            body,
+            text="Configure Cursor MCP (blender-ai tools)",
+            text_color=COLORS["text"],
+            fg_color=COLORS["accent2"],
+            hover_color=COLORS["accent"],
+        )
+        self.opt_mcp.select()
+        self.opt_mcp.pack(anchor="w", padx=14, pady=3)
+
+        self.opt_enable = ctk.CTkCheckBox(
+            body,
+            text="Enable BlenderAI in Blender (recommended)",
+            text_color=COLORS["text"],
+            fg_color=COLORS["accent2"],
+            hover_color=COLORS["accent"],
+        )
+        self.opt_enable.select()
+        self.opt_enable.pack(anchor="w", padx=14, pady=3)
+
         self.progress = ctk.CTkProgressBar(body, progress_color=COLORS["accent"], fg_color=COLORS["bg2"], height=8)
         self.progress.pack(fill="x", padx=14, pady=(14, 6))
         self.progress.set(0)
@@ -226,55 +222,6 @@ class InstallerApp(ctk.CTk):
     def _log(self, msg: str) -> None:
         self.log.insert("end", msg + "\n")
         self.log.see("end")
-
-    def _open_chat_ui(self) -> None:
-        """Open the BlenderAI chat interface (Providers, Skills, History)."""
-        import urllib.request
-
-        url = "http://127.0.0.1:8765"
-        try:
-            urllib.request.urlopen(url + "/health", timeout=1.5)
-        except Exception:
-            started = self._try_start_sidecar()
-            if started:
-                self._log("Starting Sidecar… opening Chat UI in a moment.")
-                self.after(1800, lambda: webbrowser.open(url))
-                self.status.configure(
-                    text="Starting Sidecar, then opening Chat UI…",
-                    text_color=COLORS["muted"],
-                )
-                return
-            self.status.configure(
-                text="Sidecar is not running. Use the desktop shortcut “BlenderAI”, then try again.",
-                text_color=COLORS["err"],
-            )
-            self._log("Chat UI needs the Sidecar at http://127.0.0.1:8765")
-            return
-        webbrowser.open(url)
-        self.status.configure(text="Opened Chat UI in your browser", text_color=COLORS["ok"])
-
-    def _try_start_sidecar(self) -> bool:
-        import os
-        import subprocess
-        from install_core import appdata_blenderai
-
-        sidecar = appdata_blenderai() / "sidecar"
-        if os.name == "nt":
-            py = sidecar / ".venv" / "Scripts" / "python.exe"
-        else:
-            py = sidecar / ".venv" / "bin" / "python"
-        if not py.exists():
-            return False
-        try:
-            subprocess.Popen(
-                [str(py), "-m", "blender_ai_sidecar.main", "serve"],
-                cwd=str(sidecar),
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            )
-            return True
-        except Exception:
-            return False
 
     def _set_install_button_idle(self) -> None:
         if self._installed:
@@ -353,7 +300,9 @@ class InstallerApp(ctk.CTk):
             blender=blender,
             install_sidecar=bool(self.opt_sidecar.get()),
             build_webui=bool(self.opt_webui.get()),
+            enable_extension=bool(self.opt_enable.get()),
             create_shortcuts=bool(self.opt_shortcuts.get()),
+            install_mcp=bool(self.opt_mcp.get()),
         )
 
         def worker():
@@ -365,12 +314,16 @@ class InstallerApp(ctk.CTk):
                     self._log(m)
                 if result.ok:
                     self._installed = True
+                    enabled = any("enabled in Blender preferences" in m for m in result.messages)
                     self.status.configure(
-                        text="Installed. Restart Blender, then Open Chat UI to configure providers.",
+                        text=(
+                            "Installed & enabled. Restart Blender → N-Panel → BlenderAI."
+                            if enabled
+                            else "Installed. Enable BlenderAI in Get Extensions, then restart."
+                        ),
                         text_color=COLORS["ok"],
                     )
                     self.progress.set(1.0)
-                    self._log("Tip: “Open Chat UI” launches the browser chat at http://127.0.0.1:8765")
                 else:
                     self.status.configure(text="Installation failed", text_color=COLORS["err"])
                 self._set_install_button_idle()

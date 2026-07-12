@@ -1,24 +1,14 @@
 from __future__ import annotations
 
-"""Minimal MCP stdio server for BlenderAI.
-
-Uses JSON-RPC style framing compatible with MCP tool listing when the optional
-`mcp` package is unavailable — falls back to a simple stdio protocol.
-"""
-
-from __future__ import annotations
+"""MCP stdio server for BlenderAI — proxies to the live sidecar on :8765."""
 
 import asyncio
 import json
 import sys
 from typing import Any
 
-from blender_ai_sidecar.bridge import protocol as bridge
-from blender_ai_sidecar.config import get_settings
-from blender_ai_sidecar.providers.router import ProviderRouter
-from blender_ai_sidecar.skills.engine import SkillEngine
-from blender_ai_sidecar.store.db import Database
-from blender_ai_sidecar.chat.agent import ChatAgent
+from blender_ai_sidecar.mcp import proxy
+from blender_ai_sidecar.mcp.proxy import resolve_mcp_provider
 
 
 TOOLS = [
@@ -34,12 +24,43 @@ TOOLS = [
     },
     {
         "name": "viewport_capture",
-        "description": "Request a viewport capture from Blender",
-        "inputSchema": {"type": "object", "properties": {}},
+        "description": (
+            "Capture the Blender viewport. Optional multi-angle: views "
+            "['front','side','back','left','right','top','three_quarter','camera','user'] "
+            "returns one image per angle so the scene can be understood like reference turnaround sheets. "
+            "target = object name to frame; shading = MATERIAL|RENDERED|SOLID."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "views": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Angles to capture, e.g. ['front','side','back']",
+                },
+                "view": {"type": "string", "description": "Single angle (front|side|back|left|right|top|three_quarter|camera|user)"},
+                "target": {"type": "string", "description": "Object name to frame (default: all visible meshes)"},
+                "shading": {"type": "string", "description": "MATERIAL | RENDERED | SOLID | WIREFRAME"},
+                "distance": {"type": "number", "description": "View distance override"},
+            },
+        },
+    },
+    {
+        "name": "invoke_tool",
+        "description": "Invoke a Blender tool directly through the live bridge",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "tool": {"type": "string"},
+                "args": {"type": "object"},
+                "timeout": {"type": "number"},
+            },
+            "required": ["tool"],
+        },
     },
     {
         "name": "execute_skill",
-        "description": "Execute a BlenderAI skill with a prompt",
+        "description": "Prepare a BlenderAI skill for the Cursor agent (delegated provider)",
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -52,7 +73,7 @@ TOOLS = [
     },
     {
         "name": "chat",
-        "description": "Chat with BlenderAI agent",
+        "description": "Prepare a BlenderAI chat turn for the Cursor agent (delegated provider)",
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -65,7 +86,7 @@ TOOLS = [
     },
     {
         "name": "list_objects",
-        "description": "List objects from cached scene summary",
+        "description": "List objects from live scene summary",
         "inputSchema": {"type": "object", "properties": {}},
     },
     {
@@ -81,50 +102,59 @@ TOOLS = [
 ]
 
 
-async def _call_tool(name: str, arguments: dict[str, Any], agent: ChatAgent) -> Any:
+async def _call_tool(name: str, arguments: dict[str, Any]) -> Any:
     if name == "blender_status":
-        return bridge.get_scene_cache()
+        return await proxy.get_status()
     if name == "scene_summary":
-        cached = bridge.get_scene_cache().get("summary")
-        if cached:
-            return cached
-        return await bridge.request_tool("scene.summary", {})
+        result = await proxy.invoke_tool("scene.summary", {}, timeout=15.0)
+        if result.get("ok") and result.get("summary"):
+            return result["summary"]
+        status = await proxy.get_status()
+        return status.get("summary") or result
     if name == "viewport_capture":
-        return await bridge.request_tool("viewport.capture", {})
+        capture_args = {
+            k: v
+            for k, v in (arguments or {}).items()
+            if k in {"views", "view", "target", "shading", "distance", "azimuth", "elevation"} and v is not None
+        }
+        return await proxy.invoke_tool("viewport.capture", capture_args, timeout=60.0)
     if name == "list_objects":
-        summary = bridge.get_scene_cache().get("summary") or {}
+        fetched = await proxy.invoke_tool("scene.summary", {}, timeout=15.0)
+        summary = fetched.get("summary") if isinstance(fetched, dict) else {}
+        if not summary:
+            status = await proxy.get_status()
+            summary = status.get("summary") or {}
         return summary.get("objects") or summary.get("object_names") or []
     if name == "undo":
-        return await bridge.request_tool("undo", {})
+        return await proxy.invoke_tool("undo", {})
     if name == "redo":
-        return await bridge.request_tool("redo", {})
-    if name in {"chat", "execute_skill"}:
-        text_parts: list[str] = []
-        async for event in agent.run_stream(
-            provider_id=arguments.get("provider_id") or "ollama",
-            model=None,
+        return await proxy.invoke_tool("redo", {})
+    if name == "invoke_tool":
+        return await proxy.invoke_tool(
+            arguments.get("tool") or "",
+            arguments.get("args"),
+            timeout=float(arguments.get("timeout") or 30.0),
+        )
+    if name == "execute_skill":
+        return await proxy.chat_turn(
+            arguments.get("prompt") or "",
             skill_id=arguments.get("skill_id"),
-            user_message=arguments.get("prompt") or arguments.get("message") or "",
-            local_only=False,
-        ):
-            if event.type == "token":
-                text_parts.append(event.content)
-            elif event.type == "error":
-                return {"ok": False, "error": event.content}
-        return {"ok": True, "text": "".join(text_parts)}
+            provider_id=resolve_mcp_provider(arguments.get("provider_id")),
+        )
+    if name == "chat":
+        return await proxy.chat_turn(
+            arguments.get("message") or "",
+            skill_id=arguments.get("skill_id"),
+            provider_id=resolve_mcp_provider(arguments.get("provider_id")),
+        )
     return {"ok": False, "error": f"Unknown tool {name}"}
 
 
-async def run_mcp_stdio() -> None:
-    settings = get_settings()
-    db = Database(settings.resolved_db())
-    await db.connect()
-    skills = SkillEngine()
-    skills.load()
-    router = ProviderRouter(db)
-    agent = ChatAgent(db, router, skills)
+def _encode_result(result: Any) -> str:
+    return json.dumps(result, ensure_ascii=False, indent=2)
 
-    # Try official MCP SDK
+
+async def run_mcp_stdio() -> None:
     try:
         from mcp.server import Server
         from mcp.server.stdio import stdio_server
@@ -141,16 +171,16 @@ async def run_mcp_stdio() -> None:
 
         @server.call_tool()
         async def call_tool(name: str, arguments: dict[str, Any] | None) -> list[types.TextContent]:
-            result = await _call_tool(name, arguments or {}, agent)
-            return [types.TextContent(type="text", text=json.dumps(result, ensure_ascii=False, indent=2))]
+            result = await _call_tool(name, arguments or {})
+            return [types.TextContent(type="text", text=_encode_result(result))]
 
         async with stdio_server() as (read_stream, write_stream):
             await server.run(read_stream, write_stream, server.create_initialization_options())
         return
-    except Exception:
+    except ImportError:
         pass
 
-    # Fallback minimal JSON-RPC loop
+    # Fallback minimal JSON-RPC loop (no mcp package)
     for line in sys.stdin:
         line = line.strip()
         if not line:
@@ -165,8 +195,12 @@ async def run_mcp_stdio() -> None:
             resp = {"jsonrpc": "2.0", "id": rid, "result": {"tools": TOOLS}}
         elif method == "tools/call":
             params = req.get("params") or {}
-            result = await _call_tool(params.get("name"), params.get("arguments") or {}, agent)
-            resp = {"jsonrpc": "2.0", "id": rid, "result": {"content": [{"type": "text", "text": json.dumps(result)}]}}
+            result = await _call_tool(params.get("name"), params.get("arguments") or {})
+            resp = {
+                "jsonrpc": "2.0",
+                "id": rid,
+                "result": {"content": [{"type": "text", "text": _encode_result(result)}]},
+            }
         elif method == "initialize":
             resp = {
                 "jsonrpc": "2.0",
@@ -181,8 +215,6 @@ async def run_mcp_stdio() -> None:
             resp = {"jsonrpc": "2.0", "id": rid, "error": {"code": -32601, "message": "Method not found"}}
         sys.stdout.write(json.dumps(resp) + "\n")
         sys.stdout.flush()
-
-    await db.close()
 
 
 def main_mcp() -> None:

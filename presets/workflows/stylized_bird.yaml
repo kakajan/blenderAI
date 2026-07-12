@@ -1,0 +1,12 @@
+id: workflow.stylized_bird
+name: Stylized Bird Character
+steps:
+  - skill: modeling.character_stylized
+    prompt: >
+      Recreate the reference stylized purple chibi bird. Use an integrated pear-shaped body,
+      flush lavender belly/face patches, single-lobe wings, 3 back tail tufts, glossy eyes with
+      highlights, orange beak/feet, soft fur via particle.fur_set, peach background, three-point
+      lighting. Delete any previous broken bird parts first. Match reference proportions — not a
+      snowman stack of spheres.
+  - skill: review.critique
+    prompt: Compare the result to the reference image. Fix proportions, fur softness, eye placement, and materials.

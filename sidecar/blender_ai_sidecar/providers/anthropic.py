@@ -5,7 +5,7 @@ from typing import Any, AsyncIterator
 
 import httpx
 
-from blender_ai_sidecar.providers.base import ChatRequest, ModelInfo, StreamEvent
+from blender_ai_sidecar.providers.base import ChatRequest, ModelInfo, StreamEvent, model_info_with_caps
 
 
 class AnthropicProvider:
@@ -32,7 +32,10 @@ class AnthropicProvider:
             "claude-sonnet-4-20250514",
             "claude-3-5-haiku-20241022",
         ]
-        return [ModelInfo(id=m, name=m, provider_id="anthropic") for m in defaults]
+        return [
+            model_info_with_caps(model_id=m, name=m, provider_id="anthropic", provider_kind="anthropic")
+            for m in defaults
+        ]
 
     async def test_connection(self) -> dict[str, Any]:
         if not self.api_key:
@@ -62,6 +65,27 @@ class AnthropicProvider:
         for m in req.messages:
             if m.role == "system":
                 system = (system + "\n" + m.content).strip()
+                continue
+            if m.images:
+                parts: list[dict[str, Any]] = [{"type": "text", "text": m.content or ""}]
+                mime = (m.image_mime or "image/png").split("/")[-1]
+                if mime == "jpg":
+                    mime = "jpeg"
+                for img in m.images:
+                    raw = img.strip()
+                    if "," in raw and raw.startswith("data:"):
+                        raw = raw.split(",", 1)[1]
+                    parts.append(
+                        {
+                            "type": "image",
+                            "source": {
+                                "type": "base64",
+                                "media_type": m.image_mime or "image/png",
+                                "data": raw,
+                            },
+                        }
+                    )
+                messages.append({"role": m.role, "content": parts})
             else:
                 messages.append({"role": m.role, "content": m.content})
         payload: dict[str, Any] = {

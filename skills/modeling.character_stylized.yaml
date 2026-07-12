@@ -1,0 +1,36 @@
+id: modeling.character_stylized
+version: 1
+name: Stylized Character
+domains: [modeling]
+tools:
+  - scene.create_object
+  - mesh.from_data
+  - mesh.select
+  - mesh.ops
+  - mesh.extrude
+  - mesh.profile_extrude
+  - selection.set
+  - object.transform
+  - object.join
+  - object.duplicate
+  - object.delete
+  - object.parent
+  - modifier.add
+  - modifier.apply
+  - material.create
+  - material.assign
+  - particle.fur_set
+  - node.set
+  - light.set
+  - world.set
+  - camera.set
+  - collection.organize
+  - scene.reference_image
+  - viewport.set_shading
+  - viewport.capture
+system_prompt: presets/modeling/character_stylized.md
+risk: medium
+requires_confirmation: false
+viewport_capture: optional
+max_steps: 40
+description: Build cohesive stylized characters (chibi animals, mascots) with flush features and soft fur.

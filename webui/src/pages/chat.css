@@ -1,8 +1,31 @@
-.chat-page {
+.chat-feedback-row {
   display: flex;
-  flex-direction: column;
-  gap: 1.15rem;
-  min-height: calc(100vh - var(--header-h) - 3.5rem);
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.chat-attach {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+  cursor: pointer;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.45rem 0.7rem;
+  background: rgba(10, 12, 16, 0.45);
+}
+
+.chat-attach input {
+  display: none;
+}
+
+.confirm-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .chat-head {
@@ -13,6 +36,50 @@
   flex-wrap: wrap;
   position: relative;
   z-index: var(--z-sticky-controls);
+}
+
+.chat-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.bridge-pill {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 0.28rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(10, 12, 16, 0.55);
+  color: var(--muted);
+}
+
+.bridge-pill.ok {
+  color: #9ddea8;
+  border-color: rgba(157, 222, 168, 0.35);
+  background: rgba(40, 90, 55, 0.35);
+}
+
+.bridge-pill.bad {
+  color: #f0b4a0;
+  border-color: rgba(240, 180, 160, 0.4);
+  background: rgba(90, 40, 30, 0.4);
+}
+
+.bridge-pill.unknown {
+  color: var(--muted);
+}
+
+.bridge-warn {
+  margin: 0.35rem 0 0;
+  font-size: 0.85rem;
+  color: #f0b4a0;
+  max-width: 42rem;
+  line-height: 1.45;
 }
 
 .chat-controls {
@@ -28,6 +95,12 @@
   position: relative;
   z-index: var(--z-sticky-controls);
   overflow: visible;
+  align-items: end;
+}
+
+.chat-preset-btn {
+  grid-column: 1 / -1;
+  justify-self: start;
 }
 
 .chat-log {
@@ -115,6 +188,22 @@
   align-self: end;
 }
 
+.chat-stop-btn {
+  min-width: 108px;
+  height: 48px;
+  align-self: end;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(240, 180, 160, 0.45);
+  background: rgba(90, 40, 30, 0.55);
+  color: #f0b4a0;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.chat-stop-btn:hover {
+  background: rgba(110, 45, 35, 0.75);
+}
+
 @media (max-width: 800px) {
   .chat-controls {
     grid-template-columns: 1fr;
@@ -125,7 +214,8 @@
     grid-template-columns: 1fr;
   }
 
-  .chat-form .primary {
+  .chat-form .primary,
+  .chat-stop-btn {
     width: 100%;
   }
 }

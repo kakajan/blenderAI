@@ -1,0 +1,26 @@
+id: workflow.specialist_prop
+name: Specialist Prop
+category: workflows
+description: Professional prop pipeline — blockout, critique, hard-surface refine, materials, lighting.
+steps:
+  - skill: modeling.blockout
+    name: Blockout
+    prompt: Establish real-world scale and readable massing only. Named parts, clear silhouette from three axes. No fine detail yet.
+  - skill: review.critique
+    name: Critique blockout
+    prompt: Score proportions and silhouette vs the user brief. List the top 3 fixes before refining.
+  - skill: modeling.hardsurface
+    name: Hard-surface refine
+    prompt: Add support loops, bevels, boolean cleanup, and secondary forms. Prefer modifiers when non-destructive.
+  - skill: review.iterate
+    name: Iterate
+    prompt: Capture and fix the weakest silhouette/topology issues (max 2 tool rounds of fixes).
+  - skill: materials.create_pbr
+    name: Materials
+    prompt: Apply believable PBR materials matching the brief (wood/metal/plastic as needed).
+  - skill: lighting.three_point
+    name: Lighting
+    prompt: Set product three-point lighting and a camera for a catalog-style view.
+  - skill: review.critique
+    name: Final critique
+    prompt: Final catalog-shot critique — composition, bevel readability, material contrast.

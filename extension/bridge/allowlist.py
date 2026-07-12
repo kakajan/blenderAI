@@ -1,0 +1,50 @@
+"""Defensive tool allowlist mirroring sidecar ToolRegistry names."""
+
+from __future__ import annotations
+
+# Keep in sync with sidecar/blender_ai_sidecar/tools/__init__.py `_TOOL_SPECS`.
+KNOWN_TOOLS: frozenset[str] = frozenset(
+    {
+        "scene.summary",
+        "viewport.capture",
+        "viewport.set_shading",
+        "undo",
+        "redo",
+        "scene.create_object",
+        "mesh.from_data",
+        "selection.set",
+        "mesh.select",
+        "mesh.extrude",
+        "mesh.edge_loop",
+        "mesh.profile_extrude",
+        "mesh.ops",
+        "object.transform",
+        "object.join",
+        "object.duplicate",
+        "object.delete",
+        "object.parent",
+        "modifier.add",
+        "modifier.apply",
+        "material.create",
+        "material.assign",
+        "node.set",
+        "nodes.geometry_set",
+        "light.set",
+        "world.set",
+        "world.hdri_set",
+        "collection.organize",
+        "sculpt.set_brush",
+        "sculpt.remesh",
+        "particle.fur_set",
+        "uv.unwrap",
+        "camera.set",
+        "scene.reference_image",
+        "render.set",
+        "anim.keyframes",
+        "anim.walk_to_camera",
+        "anim.throw_bounce",
+        "anim.play",
+        "anim.set_frame",
+        "blender.introspect",
+    }
+)

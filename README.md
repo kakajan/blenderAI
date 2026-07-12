@@ -2,9 +2,9 @@
 
 **Your AI co-pilot inside Blender — private when you want, powerful when you need it.**
 
-BlenderAI connects Blender to local and cloud models (Ollama, OpenAI, Claude, DeepSeek, Qwen, GLM, and any OpenAI-compatible API). Chat from the **N-Panel inside Blender**, run domain **Skills** for modeling, materials, lighting, and more, and control a live scene from Cursor via **MCP**. The browser WebUI is optional for Providers and richer screens.
+BlenderAI connects Blender to local and cloud models (Ollama, OpenAI, Claude, DeepSeek, Qwen, GLM, OpenCode Zen, and any OpenAI-compatible API). Chat from the **N-Panel inside Blender**, run domain **Skills** for modeling, materials, lighting, and more, and control a live scene from Cursor via **MCP**. The browser WebUI is optional for Providers and richer screens.
 
-> فارسی: [README.fa.md](README.fa.md)
+> فارسی: [README.fa.md](README.fa.md) · User guide: [GUIDE.md](GUIDE.md) · Contributing: [CONTRIBUTING.md](CONTRIBUTING.md)
 
 | | |
 |--|--|
@@ -13,6 +13,15 @@ BlenderAI connects Blender to local and cloud models (Ollama, OpenAI, Claude, De
 | **Issues** | [Open an issue](https://github.com/kakajan/blenderAI/issues) |
 | **Website** | [kakajan.github.io/blenderAI](https://kakajan.github.io/blenderAI/) |
 | **License** | [MIT](LICENSE) |
+
+### Docs at a glance
+
+| Need | English | فارسی |
+|------|---------|--------|
+| Overview (this file) | [README.md](README.md) | [README.fa.md](README.fa.md) |
+| Step-by-step guide | [GUIDE.md](GUIDE.md) | [GUIDE.fa.md](GUIDE.fa.md) |
+| Contributing | [CONTRIBUTING.md](CONTRIBUTING.md) | [CONTRIBUTING.fa.md](CONTRIBUTING.fa.md) |
+| Architecture / MCP / Skills | [docs/](docs/) | same folder (`*.fa.md`) |
 
 ---
 
@@ -89,6 +98,8 @@ You’re ready to create meshes, materials, and lighting with natural language.
 
 ## Everyday usage
 
+Full walkthrough (install → providers → skills → MCP → troubleshooting): **[GUIDE.md](GUIDE.md)**.
+
 ### In Blender (N-Panel)
 
 | Action | What it does |
@@ -147,7 +158,8 @@ npm run dev
 
 ### Extension
 
-In Blender: **Edit → Preferences → Extensions → Install from Disk** → select the `extension` folder (or a zip of it) → enable **BlenderAI**.
+In Blender: **Edit → Preferences → Get Extensions → Install from Disk** → select
+`%APPDATA%\BlenderAI\cache\blender_ai_extension.zip` (or the `extension/` folder) → enable **BlenderAI** in the **Add-ons** tab.
 
 ---
 
@@ -155,21 +167,9 @@ In Blender: **Edit → Preferences → Extensions → Install from Disk** → se
 
 Control the **same open Blender scene** from Cursor, Claude Desktop, or any MCP client.
 
+The **installer configures Cursor automatically** (`~/.cursor/mcp.json`) — restart Cursor after install.
+
 See the full guide: [docs/mcp.md](docs/mcp.md)
-
-Example Cursor config:
-
-```json
-{
-  "mcpServers": {
-    "blender-ai": {
-      "command": "python",
-      "args": ["-m", "blender_ai_sidecar.main", "mcp", "--stdio"],
-      "cwd": "/absolute/path/to/blenderAI/sidecar"
-    }
-  }
-}
-```
 
 Keep Blender open with the addon enabled and the sidecar running.
 
@@ -209,9 +209,9 @@ More detail: [docs/architecture.md](docs/architecture.md) · [docs/skills.md](do
 
 We’d love your help — whether you ship one skill, fix a typo, or redesign a flow.
 
-1. Read [CONTRIBUTING.md](CONTRIBUTING.md) (فارسی: [CONTRIBUTING.fa.md](CONTRIBUTING.fa.md)).
-2. Open an issue for bugs or ideas.
-3. Send a pull request — small, focused changes are perfect.
+1. Read the user [GUIDE.md](GUIDE.md) so you know the happy path.
+2. Follow [CONTRIBUTING.md](CONTRIBUTING.md) (فارسی: [CONTRIBUTING.fa.md](CONTRIBUTING.fa.md)).
+3. Open an issue for bugs or ideas, then send a focused pull request.
 
 **Especially welcome**
 

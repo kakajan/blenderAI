@@ -1,0 +1,71 @@
+# Minimal policy evals — assert skill tool allowlists + catalog coverage.
+cases:
+  - id: primitives_no_mesh_ops
+    prompt: "Just add a cube"
+    skill_id: modeling.primitives
+    forbidden_tools:
+      - mesh.ops
+      - mesh.extrude
+      - object.delete
+    required_tool_substring: scene.create_object
+
+  - id: critique_viewport_only
+    prompt: "Review the viewport"
+    skill_id: review.critique
+    forbidden_tools:
+      - scene.create_object
+      - mesh.ops
+      - object.delete
+    required_tool_substring: viewport.capture
+
+  - id: surface_has_extrude
+    prompt: "Detailed character with extrusions"
+    skill_id: modeling.surface_advanced
+    forbidden_tools: []
+    required_tool_substring: mesh.extrude
+
+  # Catalog done-intents (skill tool membership / allowlist smoke)
+  - id: catalog_lighting_three_point
+    prompt: "Set up studio three point lighting"
+    skill_id: lighting.three_point
+    forbidden_tools:
+      - object.delete
+      - mesh.ops
+    required_tool_substring: light.set
+
+  - id: catalog_hdri_setup
+    prompt: "Load an HDRI environment"
+    skill_id: lighting.hdri_setup
+    forbidden_tools:
+      - mesh.ops
+      - object.delete
+    required_tool_substring: world.hdri_set
+
+  - id: catalog_materials_pbr
+    prompt: "Create a PBR material"
+    skill_id: materials.create_pbr
+    forbidden_tools:
+      - object.delete
+    required_tool_substring: material.create
+
+  - id: catalog_render_optimize
+    prompt: "Optimize render settings"
+    skill_id: render.optimize
+    forbidden_tools:
+      - mesh.ops
+      - object.delete
+    required_tool_substring: render.set
+
+  - id: catalog_scene_organize
+    prompt: "Organize objects into collections"
+    skill_id: scene.organize
+    forbidden_tools:
+      - mesh.ops
+    required_tool_substring: collection.organize
+
+  - id: catalog_geometry_nodes_basic
+    prompt: "Add a basic geometry nodes setup"
+    skill_id: nodes.geometry_basic
+    forbidden_tools:
+      - object.delete
+    required_tool_substring: nodes.geometry_set

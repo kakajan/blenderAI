@@ -1,0 +1,41 @@
+{
+  "version": "5.1",
+  "api_url": "https://docs.blender.org/api/5.1/",
+  "chunks": [
+    {
+      "id": "anim-keyframes",
+      "tags": ["animation", "keyframe", "action", "fcurve"],
+      "title": "Keyframes and layered Actions",
+      "file": "animation.md",
+      "text": "Use keyframe_insert for location/rotation. Blender 5.x Actions are layered; fcurves live in channelbags, not Action.fcurves. Clear with animation_data_clear. LINEAR for baked ballistics; BEZIER for camera."
+    },
+    {
+      "id": "anim-camera-follow",
+      "tags": ["animation", "camera", "track", "follow"],
+      "title": "Camera follow",
+      "file": "animation.md",
+      "text": "TRACK_TO on camera to Empty target; track -Z up Y. Lead/lag target keyframes for cinematic follow. Animate lens on camera.data."
+    },
+    {
+      "id": "light-studio",
+      "tags": ["lighting", "studio", "area", "softbox"],
+      "title": "Studio area lights",
+      "file": "lighting.md",
+      "text": "AREA lights with large size for soft shadows. Key, fill, rim ratios. Aim local -Z at subject. world.set for ambient; world.hdri_set for HDRI."
+    },
+    {
+      "id": "camera-basics",
+      "tags": ["camera", "lens", "look_at"],
+      "title": "Camera look-at and lens",
+      "file": "camera.md",
+      "text": "Camera looks down -Z. look_at via to_track_quat(-Z,Y). camera.set supports track_to constraint and active scene camera."
+    },
+    {
+      "id": "render-motion-blur",
+      "tags": ["render", "motion_blur", "eevee", "cycles", "fps"],
+      "title": "Motion blur and FPS",
+      "file": "render.md",
+      "text": "render.use_motion_blur and shutter; eevee.use_motion_blur when available. Set fps and frame_start/end via render.set."
+    }
+  ]
+}

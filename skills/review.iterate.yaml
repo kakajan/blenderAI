@@ -1,0 +1,19 @@
+id: review.iterate
+version: 1
+name: Review Iterate
+domains: [review, modeling]
+tools:
+  - viewport.capture
+  - scene.create_object
+  - mesh.select
+  - mesh.ops
+  - selection.set
+  - object.transform
+  - object.duplicate
+  - modifier.add
+system_prompt: presets/review/critique.md
+risk: medium
+requires_confirmation: false
+viewport_capture: required
+max_steps: 12
+description: Capture viewport, critique, and apply a few targeted fixes.

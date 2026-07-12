@@ -3,7 +3,7 @@ version: 1
 name: Visual Critique
 domains: [review]
 tools: [viewport.capture]
-system_prompt: presets/general/blender_assistant.md
+system_prompt: presets/review/critique.md
 risk: low
 requires_confirmation: false
 viewport_capture: required

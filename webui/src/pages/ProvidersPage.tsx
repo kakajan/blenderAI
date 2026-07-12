@@ -10,9 +10,18 @@ import {
 import type { Provider, AppSettings } from "../api/client";
 import { t } from "../i18n";
 import Toggle from "../components/Toggle";
+import Select from "../components/Select";
 import "./providers.css";
 
 type Draft = Provider & { api_key?: string; models?: string[]; testMsg?: string; testOk?: boolean };
+
+function modelOptions(p: Draft) {
+  const ids = [...(p.models || [])];
+  if (p.default_model && !ids.includes(p.default_model)) {
+    ids.unshift(p.default_model);
+  }
+  return ids.map((id) => ({ value: id, label: id }));
+}
 
 export default function ProvidersPage() {
   const [items, setItems] = useState<Draft[]>([]);
@@ -21,12 +30,31 @@ export default function ProvidersPage() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [customName, setCustomName] = useState("");
 
+  async function loadModelsFor(providers: Draft[]) {
+    const targets = providers.filter((p) => p.enabled);
+    if (!targets.length) return;
+    const results = await Promise.allSettled(
+      targets.map(async (p) => {
+        const res = await getModels(p.id);
+        return { id: p.id, models: res.models.map((m) => m.id).filter(Boolean) };
+      })
+    );
+    const byId = new Map(
+      results
+        .filter((r): r is PromiseFulfilledResult<{ id: string; models: string[] }> => r.status === "fulfilled")
+        .map((r) => [r.value.id, r.value.models] as const)
+    );
+    if (!byId.size) return;
+    setItems((list) => list.map((p) => (byId.has(p.id) ? { ...p, models: byId.get(p.id)! } : p)));
+  }
+
   async function reload() {
     const [p, s] = await Promise.all([getProviders(), getSettings()]);
     setItems(p.providers);
     setSettings(s);
     const anyKey = p.providers.some((x) => x.has_api_key || x.id === "ollama");
     setShowOnboarding(!anyKey && !localStorage.getItem("blenderai_onboarded"));
+    void loadModelsFor(p.providers);
   }
 
   useEffect(() => {
@@ -59,9 +87,21 @@ export default function ProvidersPage() {
   async function test(p: Draft) {
     setBusyId(p.id);
     try {
-      if (p.api_key || p.base_url !== undefined) await save(p);
+      if (p.api_key || p.base_url !== undefined) {
+        await save(p);
+        setBusyId(p.id);
+      }
       const res = await testProvider(p.id);
-      updateLocal(p.id, { testOk: res.ok, testMsg: res.message });
+      if (res.ok) {
+        const models = await getModels(p.id);
+        updateLocal(p.id, {
+          models: models.models.map((m) => m.id).filter(Boolean),
+          testOk: true,
+          testMsg: res.message,
+        });
+      } else {
+        updateLocal(p.id, { testOk: false, testMsg: res.message });
+      }
     } catch (e: any) {
       updateLocal(p.id, { testOk: false, testMsg: String(e.message || e) });
     } finally {
@@ -73,7 +113,12 @@ export default function ProvidersPage() {
     setBusyId(p.id);
     try {
       const res = await getModels(p.id);
-      updateLocal(p.id, { models: res.models.map((m) => m.id) });
+      const models = res.models.map((m) => m.id).filter(Boolean);
+      updateLocal(p.id, {
+        models,
+        testOk: true,
+        testMsg: `${models.length} models`,
+      });
     } catch (e: any) {
       updateLocal(p.id, { testOk: false, testMsg: String(e.message || e) });
     } finally {
@@ -91,6 +136,11 @@ export default function ProvidersPage() {
 
   async function toggleLocalOnly(v: boolean) {
     await putSettings({ local_only: v });
+    await reload();
+  }
+
+  async function toggleLearning(v: boolean) {
+    await putSettings({ learning_enabled: v });
     await reload();
   }
 
@@ -152,6 +202,11 @@ export default function ProvidersPage() {
           onChange={(v) => toggleLocalOnly(v)}
           label={t("providers.localOnly")}
         />
+        <Toggle
+          checked={settings?.learning_enabled !== false}
+          onChange={(v) => toggleLearning(v)}
+          label="Learning memory"
+        />
         <div className="fallback">
           <span className="muted">{t("providers.fallback")}</span>
           <input
@@ -170,7 +225,7 @@ export default function ProvidersPage() {
               )
             }
             onBlur={() => settings && saveFallback(settings.fallback_chain)}
-            placeholder="ollama, deepseek, openai"
+            placeholder="ollama, opencode, openai"
           />
         </div>
         <div className="muted">
@@ -216,19 +271,19 @@ export default function ProvidersPage() {
               </label>
             )}
 
-            <label>
-              Default model
-              <input
-                list={`models-${p.id}`}
-                value={p.default_model || ""}
-                onChange={(e) => updateLocal(p.id, { default_model: e.target.value })}
-              />
-              <datalist id={`models-${p.id}`}>
-                {(p.models || []).map((m) => (
-                  <option key={m} value={m} />
-                ))}
-              </datalist>
-            </label>
+            <Select
+              className="provider-model-select"
+              label={t("providers.defaultModel")}
+              value={p.default_model || ""}
+              placeholder={
+                (p.models || []).length
+                  ? t("providers.selectModel")
+                  : t("providers.refreshModelsHint")
+              }
+              options={modelOptions(p)}
+              onChange={(value) => updateLocal(p.id, { default_model: value })}
+              disabled={busyId === p.id}
+            />
 
             {p.testMsg && <p className={p.testOk ? "ok" : "err"}>{p.testMsg}</p>}
 

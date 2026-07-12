@@ -6,6 +6,7 @@ import SkillsPage from "./pages/SkillsPage";
 import PresetsPage from "./pages/PresetsPage";
 import HistoryPage from "./pages/HistoryPage";
 import SettingsPage from "./pages/SettingsPage";
+import LogsPage from "./pages/LogsPage";
 import { getSettings } from "./api/client";
 import { t, setLang, resolveDirection, Lang, UiDirection } from "./i18n";
 import "./styles/shell.css";
@@ -58,6 +59,7 @@ export default function App() {
           <NavLink to="/presets">{t("nav.presets")}</NavLink>
           <NavLink to="/providers">{t("nav.providers")}</NavLink>
           <NavLink to="/history">{t("nav.history")}</NavLink>
+          <NavLink to="/logs">{t("nav.logs")}</NavLink>
           <NavLink to="/settings">{t("nav.settings")}</NavLink>
         </nav>
       </header>
@@ -68,6 +70,7 @@ export default function App() {
           <Route path="/presets" element={<PresetsPage />} />
           <Route path="/providers" element={<ProvidersPage />} />
           <Route path="/history" element={<HistoryPage />} />
+          <Route path="/logs" element={<LogsPage />} />
           <Route
             path="/settings"
             element={

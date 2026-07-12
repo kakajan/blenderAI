@@ -2,9 +2,9 @@ id: sculpt.brush_assist
 version: 1
 name: Sculpt Brush Assist
 domains: [sculpting]
-tools: [sculpt.set_brush, selection.set]
+tools: [sculpt.set_brush, sculpt.remesh, selection.set, object.transform]
 system_prompt: presets/general/blender_assistant.md
 risk: low
 requires_confirmation: false
 viewport_capture: optional
-description: Suggest and apply sculpt brush, size, and strength.
+description: Apply sculpt brush settings, remesh, and simple inflate strokes.

@@ -2,9 +2,9 @@ id: nodes.geometry_basic
 version: 1
 name: Geometry Nodes Basic
 domains: [nodes]
-tools: [nodes.geometry_set, modifier.add]
-system_prompt: presets/general/blender_assistant.md
+tools: [nodes.geometry_set, modifier.add, selection.set]
+system_prompt: presets/nodes/geometry_basic.md
 risk: medium
 requires_confirmation: false
 viewport_capture: optional
-description: Create simple Geometry Nodes modifiers from descriptions.
+description: Apply array/scatter/solidify/subdivide geometry templates.

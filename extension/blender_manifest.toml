@@ -5,7 +5,22 @@ name = "BlenderAI"
 tagline = "Professional AI assistant for Blender"
 maintainer = "BlenderAI Contributors"
 type = "add-on"
-tags = ["Development", "User Interface"]
+tags = ["User Interface", "3D View"]
 blender_version_min = "4.2.0"
 license = ["SPDX:MIT"]
 website = "https://github.com/kakajan/blenderAI"
+copyright = ["2024-2026 BlenderAI Contributors"]
+wheels = ["./wheels/websocket_client-1.8.0-py3-none-any.whl"]
+
+[permissions]
+network = "Connect to the local BlenderAI sidecar on localhost"
+files = "Read install paths and write temporary viewport captures"
+
+[build]
+paths_exclude_pattern = [
+  "__pycache__/",
+  "/.git/",
+  "/*.zip",
+  "*.pyc",
+  "install_info.json",
+]

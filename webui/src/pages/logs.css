@@ -1,0 +1,99 @@
+.logs-page .logs-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.logs-page .logs-filters label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.logs-page .logs-filters select {
+  min-width: 12rem;
+}
+
+.logs-report-box textarea {
+  width: 100%;
+  resize: vertical;
+}
+
+.logs-ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.log-row {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  grid-template-areas:
+    "level meta ts"
+    "msg msg msg";
+  gap: 0.25rem 0.65rem;
+  padding: 0.55rem 0.65rem;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.03);
+  border-inline-start: 3px solid var(--muted);
+}
+
+.log-row.level-warning {
+  border-inline-start-color: #d4a017;
+}
+
+.log-row.level-error,
+.log-row.level-crash {
+  border-inline-start-color: var(--err);
+}
+
+.log-level {
+  grid-area: level;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.log-row.level-warning .log-level {
+  color: #d4a017;
+}
+
+.log-row.level-error .log-level,
+.log-row.level-crash .log-level {
+  color: var(--err);
+}
+
+.log-meta {
+  grid-area: meta;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.log-ts {
+  grid-area: ts;
+  font-size: 0.72rem;
+  color: var(--muted);
+  text-align: end;
+}
+
+.log-msg {
+  grid-area: msg;
+  margin: 0.15rem 0 0;
+  font-size: 0.9rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.log-path {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 0.75rem;
+  word-break: break-all;
+}

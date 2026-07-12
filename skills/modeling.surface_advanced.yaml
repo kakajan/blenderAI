@@ -1,0 +1,34 @@
+id: modeling.surface_advanced
+version: 1
+name: Surface Advanced
+domains: [modeling]
+tools:
+  - scene.create_object
+  - mesh.from_data
+  - mesh.select
+  - mesh.ops
+  - mesh.extrude
+  - mesh.edge_loop
+  - mesh.profile_extrude
+  - selection.set
+  - object.transform
+  - object.join
+  - object.duplicate
+  - object.delete
+  - object.parent
+  - modifier.add
+  - modifier.apply
+  - material.create
+  - material.assign
+  - uv.unwrap
+  - sculpt.remesh
+  - viewport.capture
+  - viewport.set_shading
+  - collection.organize
+  - scene.reference_image
+system_prompt: presets/modeling/surface_advanced.md
+risk: medium
+requires_confirmation: false
+viewport_capture: optional
+max_steps: 40
+description: Advanced surface/edge modeling — box modeling, extrude, inset, bevel, profile extrude, modifiers. Not primitive stacking.

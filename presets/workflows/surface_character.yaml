@@ -1,0 +1,17 @@
+id: workflow.surface_character
+name: Surface Character Build
+steps:
+  - skill: modeling.surface_advanced
+    prompt: >
+      Build the character using box modeling and surface edits — NOT primitive stacking.
+      Start with a cube/plane base, extrude/inset/bevel for silhouette, use mesh.profile_extrude
+      for wings/tail, mesh.from_data for wedge beak and flush patches. Add SUBSURF for smooth
+      organic forms. Delete any previous broken parts first. Match reference proportions.
+  - skill: modeling.character_stylized
+    prompt: >
+      Apply materials, glossy eyes with highlights, soft fur via particle.fur_set,
+      orange beak/feet, three-point lighting, viewport.set_shading MATERIAL.
+  - skill: review.critique
+    prompt: >
+      Compare front/side/back views to the reference. Fix proportions, silhouette,
+      flush features, and fur softness. Re-capture after fixes.

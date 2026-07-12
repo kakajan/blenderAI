@@ -1,0 +1,22 @@
+# Sample personal skill (copy into %APPDATA%/BlenderAI/skills_user/)
+# Hot-loaded by SkillEngine — may only reference allowlisted tools.
+id: user.example_studio_anim
+version: 1
+name: Example Studio Anim
+domains: [animation, lighting, camera]
+tools:
+  - blender.introspect
+  - anim.keyframes
+  - anim.throw_bounce
+  - light.set
+  - world.set
+  - camera.set
+  - render.set
+  - viewport.capture
+system_prompt: presets/general/blender_assistant.md
+risk: medium
+requires_confirmation: false
+viewport_capture: optional
+description: >-
+  Example adaptive user skill combining studio lights with keyframed throw/bounce.
+  Install by copying to BlenderAI/skills_user/ then POST /api/skills/reload.

@@ -1,0 +1,19 @@
+id: modeling.low_poly
+version: 1
+name: Low Poly
+domains: [modeling]
+tools:
+  - mesh.from_data
+  - material.create
+  - material.assign
+  - object.delete
+  - object.parent
+  - collection.organize
+  - camera.set
+  - light.set
+system_prompt: presets/modeling/low_poly.md
+risk: low
+requires_confirmation: false
+viewport_capture: optional
+max_steps: 5
+description: Create low-poly objects and creatures from vertex coordinates in one shot.

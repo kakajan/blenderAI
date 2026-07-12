@@ -2,11 +2,14 @@
 
 Thank you for considering a contribution. You don’t need to be an expert — clear issues, small PRs, and kind reviews all move the project forward.
 
+> فارسی: [CONTRIBUTING.fa.md](CONTRIBUTING.fa.md) · User guide: [GUIDE.md](GUIDE.md) · Overview: [README.md](README.md)
+
 | | |
 |--|--|
 | **Repository** | [github.com/kakajan/blenderAI](https://github.com/kakajan/blenderAI) |
 | **Author** | [AsherQelich SayyedMuhammadi](https://github.com/kakajan) (`@kakajan`) |
 | **Issues / PRs** | [Issues](https://github.com/kakajan/blenderAI/issues) · [Pull requests](https://github.com/kakajan/blenderAI/pulls) |
+| **Website** | [kakajan.github.io/blenderAI](https://kakajan.github.io/blenderAI/) |
 
 ## Ways to help
 

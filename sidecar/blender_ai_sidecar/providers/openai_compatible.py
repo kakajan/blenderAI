@@ -5,7 +5,13 @@ from typing import Any, AsyncIterator
 
 import httpx
 
-from blender_ai_sidecar.providers.base import ChatRequest, ModelInfo, StreamEvent
+from blender_ai_sidecar.providers.base import (
+    ChatRequest,
+    ModelInfo,
+    StreamEvent,
+    message_to_openai_dict,
+    model_info_with_caps,
+)
 
 
 class OpenAICompatibleProvider:
@@ -33,11 +39,19 @@ class OpenAICompatibleProvider:
             r.raise_for_status()
             data = r.json()
         items = data.get("data") or data.get("models") or []
+        kind = "openai" if self.provider_id == "openai" else "openai_compatible"
         out: list[ModelInfo] = []
         for m in items:
             mid = m.get("id") or m.get("name") or ""
             if mid:
-                out.append(ModelInfo(id=mid, name=mid, provider_id=self.provider_id))
+                out.append(
+                    model_info_with_caps(
+                        model_id=mid,
+                        name=mid,
+                        provider_id=self.provider_id,
+                        provider_kind=kind,
+                    )
+                )
         return out
 
     async def test_connection(self) -> dict[str, Any]:
@@ -56,7 +70,7 @@ class OpenAICompatibleProvider:
             return
         payload: dict[str, Any] = {
             "model": model,
-            "messages": [{"role": m.role, "content": m.content} for m in req.messages],
+            "messages": [message_to_openai_dict(m) for m in req.messages],
             "stream": True,
             "temperature": req.temperature,
         }

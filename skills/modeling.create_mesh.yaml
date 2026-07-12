@@ -2,9 +2,28 @@ id: modeling.create_mesh
 version: 1
 name: Create Mesh
 domains: [modeling]
-tools: [scene.create_object, mesh.ops, selection.set]
+tools:
+  - scene.create_object
+  - mesh.select
+  - mesh.ops
+  - selection.set
+  - object.transform
+  - object.join
+  - object.duplicate
+  - object.delete
+  - object.parent
+  - modifier.add
+  - modifier.apply
+  - uv.unwrap
+  - material.create
+  - material.assign
+  - node.set
+  - light.set
+  - camera.set
+  - collection.organize
 system_prompt: presets/modeling/create_mesh.md
 risk: medium
 requires_confirmation: false
 viewport_capture: optional
-description: Create new mesh objects from natural language descriptions.
+max_steps: 32
+description: Create detailed mesh objects using primitives, mesh edits, and modifiers.

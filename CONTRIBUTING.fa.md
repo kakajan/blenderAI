@@ -2,11 +2,14 @@
 
 از اینکه به فکر مشارکت هستید ممنونیم. لازم نیست متخصص باشید — Issue شفاف، PR کوچک و بازبینی مهربانانه همه به پروژه کمک می‌کنند.
 
+> English: [CONTRIBUTING.md](CONTRIBUTING.md) · راهنما: [GUIDE.fa.md](GUIDE.fa.md) · معرفی: [README.fa.md](README.fa.md)
+
 | | |
 |--|--|
 | **ریپوزیتوری** | [github.com/kakajan/blenderAI](https://github.com/kakajan/blenderAI) |
 | **نویسنده** | [AsherQelich SayyedMuhammadi](https://github.com/kakajan) (`@kakajan`) |
 | **Issues / PR** | [Issues](https://github.com/kakajan/blenderAI/issues) · [Pull requests](https://github.com/kakajan/blenderAI/pulls) |
+| **وب‌سایت** | [kakajan.github.io/blenderAI](https://kakajan.github.io/blenderAI/) |
 
 ## چطور کمک کنید
 

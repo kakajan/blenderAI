@@ -1,0 +1,34 @@
+id: modeling.turnaround_character
+version: 1
+name: Turnaround Character
+domains: [modeling]
+tools:
+  - scene.create_object
+  - mesh.from_data
+  - mesh.select
+  - mesh.ops
+  - selection.set
+  - object.transform
+  - object.join
+  - object.duplicate
+  - object.delete
+  - object.parent
+  - modifier.add
+  - modifier.apply
+  - material.create
+  - material.assign
+  - particle.fur_set
+  - node.set
+  - light.set
+  - world.set
+  - camera.set
+  - collection.organize
+  - scene.reference_image
+  - viewport.set_shading
+  - viewport.capture
+system_prompt: presets/modeling/turnaround_character.md
+risk: medium
+requires_confirmation: false
+viewport_capture: required
+max_steps: 48
+description: Build stylized characters verified from front/side/back turnaround views; learns from past successful sessions.

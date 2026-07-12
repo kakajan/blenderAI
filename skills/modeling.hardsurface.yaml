@@ -1,0 +1,25 @@
+id: modeling.hardsurface
+version: 1
+name: Hard Surface
+domains: [modeling]
+tools:
+  - scene.create_object
+  - mesh.select
+  - mesh.ops
+  - selection.set
+  - object.transform
+  - object.join
+  - object.duplicate
+  - object.delete
+  - object.parent
+  - modifier.add
+  - modifier.apply
+  - uv.unwrap
+  - material.create
+  - material.assign
+system_prompt: presets/modeling/hardsurface.md
+risk: medium
+requires_confirmation: false
+viewport_capture: optional
+max_steps: 32
+description: Hard-surface refine with bevels, booleans, support loops, and UVs.

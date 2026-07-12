@@ -33,13 +33,18 @@
 }
 
 .provider-card label,
-.provider-card .field {
+.provider-card .field,
+.provider-card .provider-model-select {
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
   font-size: 0.78rem;
   font-weight: 500;
   color: var(--muted);
+}
+
+.provider-card .provider-model-select .ui-select {
+  width: 100%;
 }
 
 .provider-icon {

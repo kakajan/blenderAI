@@ -4,7 +4,13 @@ from typing import Any, AsyncIterator
 
 import httpx
 
-from blender_ai_sidecar.providers.base import ChatRequest, ModelInfo, StreamEvent
+from blender_ai_sidecar.providers.base import (
+    ChatRequest,
+    ModelInfo,
+    StreamEvent,
+    message_to_ollama_dict,
+    model_info_with_caps,
+)
 
 
 class OllamaProvider:
@@ -18,7 +24,12 @@ class OllamaProvider:
             r.raise_for_status()
             data = r.json()
         return [
-            ModelInfo(id=m.get("name", ""), name=m.get("name"))
+            model_info_with_caps(
+                model_id=m.get("name", ""),
+                name=m.get("name"),
+                provider_id="ollama",
+                provider_kind="ollama",
+            )
             for m in data.get("models", [])
             if m.get("name")
         ]
@@ -38,12 +49,17 @@ class OllamaProvider:
                 yield StreamEvent(type="error", content="No Ollama model available")
                 return
             model = models[0].id
+        # Do NOT send think=false. On gemma4:e4b (and similar) it yields eval tokens
+        # with empty content+thinking. Omit the field and fall back to `thinking`
+        # when the model streams reasoning-only (common for Gemma 4 / Qwen3).
         payload = {
             "model": model,
-            "messages": [{"role": m.role, "content": m.content} for m in req.messages],
+            "messages": [message_to_ollama_dict(m) for m in req.messages],
             "stream": True,
             "options": {"temperature": req.temperature},
         }
+        got_content = False
+        thinking_buf: list[str] = []
         async with httpx.AsyncClient(timeout=None) as client:
             async with client.stream("POST", f"{self.base_url}/api/chat", json=payload) as resp:
                 if resp.status_code >= 400:
@@ -55,12 +71,36 @@ class OllamaProvider:
                         continue
                     import json
 
-                    chunk = json.loads(line)
+                    try:
+                        chunk = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
                     msg = chunk.get("message") or {}
                     token = msg.get("content") or ""
+                    thinking = msg.get("thinking") or msg.get("reasoning") or ""
                     if token:
+                        got_content = True
                         yield StreamEvent(type="token", content=token)
+                    elif thinking and not got_content:
+                        # Buffer only — avoid mixing reasoning with a later content reply.
+                        if not thinking_buf:
+                            yield StreamEvent(type="status", content="Model thinking…")
+                        thinking_buf.append(thinking)
                     if chunk.get("done"):
+                        if not got_content and thinking_buf:
+                            yield StreamEvent(type="token", content="".join(thinking_buf))
+                        elif not got_content:
+                            reason = chunk.get("done_reason") or "unknown"
+                            # Soft signal — avoid hard "error" so the agent can synthesize
+                            # a reply after tools and the N-Panel keeps reading until done.
+                            yield StreamEvent(
+                                type="status",
+                                content=f"empty_model_response:{reason}",
+                            )
                         yield StreamEvent(type="done")
                         return
+        if not got_content and thinking_buf:
+            yield StreamEvent(type="token", content="".join(thinking_buf))
+        elif not got_content:
+            yield StreamEvent(type="status", content="empty_model_response:unknown")
         yield StreamEvent(type="done")
