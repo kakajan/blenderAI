@@ -262,7 +262,7 @@ a {
 .prompt-float {
   position: absolute;
   left: 8%;
-  bottom: 6%;
+  bottom: 28%;
   max-width: 70%;
   padding: 0.7rem 1rem;
   border-radius: 12px;
@@ -604,10 +604,10 @@ body[dir="rtl"] .prompt-float {
 @keyframes drift {
   0%,
   100% {
-    transform: translateY(0) rotate(-1deg);
+    transform: translateY(-36px) rotate(-1deg);
   }
   50% {
-    transform: translateY(-14px) rotate(1.5deg);
+    transform: translateY(-50px) rotate(1.5deg);
   }
 }
 
