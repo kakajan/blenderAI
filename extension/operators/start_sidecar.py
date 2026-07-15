@@ -12,7 +12,11 @@ class BLENDERAI_OT_start_sidecar(Operator):
 
     def execute(self, context):
         ok = bridge_client.start_sidecar_process(context)
-        self.report({"INFO"} if ok else {"WARNING"}, "Sidecar start requested" if ok else "Could not start sidecar")
+        if ok:
+            self.report({"INFO"}, "Sidecar start requested")
+        else:
+            detail = bridge_client.last_start_error() or "Could not start sidecar"
+            self.report({"WARNING"}, detail[:256])
         return {"FINISHED"}
 
 

@@ -933,25 +933,51 @@ def _collection_organize(args: dict[str, Any], context) -> dict[str, Any]:
 
 def _render_set(args: dict[str, Any], context) -> dict[str, Any]:
     scene = context.scene
+    render = scene.render
     if "engine" in args:
         engine = args["engine"]
         if engine in {"CYCLES", "BLENDER_EEVEE", "BLENDER_EEVEE_NEXT"}:
             scene.render.engine = engine
-    if "samples" in args and hasattr(scene.cycles, "samples"):
-        scene.cycles.samples = int(args["samples"])
+    samples = args.get("samples")
+    if samples is not None:
+        if hasattr(scene, "cycles"):
+            try:
+                scene.cycles.samples = int(samples)
+            except Exception:
+                pass
+        eevee = getattr(scene, "eevee", None)
+        if eevee is not None:
+            for attr in ("taa_render_samples", "samples"):
+                if hasattr(eevee, attr):
+                    try:
+                        setattr(eevee, attr, int(samples))
+                    except Exception:
+                        pass
     if "resolution_x" in args:
-        scene.render.resolution_x = int(args["resolution_x"])
+        render.resolution_x = int(args["resolution_x"])
     if "resolution_y" in args:
-        scene.render.resolution_y = int(args["resolution_y"])
+        render.resolution_y = int(args["resolution_y"])
+    if "resolution_percentage" in args:
+        render.resolution_percentage = int(args["resolution_percentage"])
     # Denoise / film / exposure (best-effort across versions)
-    if args.get("denoise") and hasattr(scene, "cycles"):
+    if "denoise" in args and hasattr(scene, "cycles"):
         try:
             scene.cycles.use_denoising = bool(args["denoise"])
+        except Exception:
+            pass
+    if args.get("device") and hasattr(scene, "cycles"):
+        try:
+            scene.cycles.device = str(args["device"]).upper()
         except Exception:
             pass
     view = scene.view_settings
     if "exposure" in args:
         view.exposure = float(args["exposure"])
+    if "gamma" in args:
+        try:
+            view.gamma = float(args["gamma"])
+        except Exception:
+            pass
     if "look" in args:
         try:
             view.look = args["look"]
@@ -968,18 +994,111 @@ def _render_set(args: dict[str, Any], context) -> dict[str, Any]:
         except Exception:
             pass
     if "fps" in args:
-        scene.render.fps = int(args["fps"])
+        render.fps = int(args["fps"])
     if "frame_start" in args:
         scene.frame_start = int(args["frame_start"])
     if "frame_end" in args:
         scene.frame_end = int(args["frame_end"])
     if "frame" in args:
         scene.frame_set(int(args["frame"]))
+    # Output path / format (animation-ready)
+    filepath = args.get("filepath") or args.get("output") or args.get("path")
+    if filepath:
+        render.filepath = str(filepath)
+    file_format = args.get("file_format") or args.get("format")
+    media_type = args.get("media_type")
+    if file_format:
+        fmt = str(file_format).upper()
+        aliases = {"MP4": "FFMPEG", "VIDEO": "FFMPEG", "MOVIE": "FFMPEG", "JPG": "JPEG"}
+        fmt = aliases.get(fmt, fmt)
+        # Blender 5.1+: video formats require media_type before/instead of FFMPEG enum
+        wants_video = fmt == "FFMPEG" or str(media_type or "").upper() == "VIDEO"
+        if wants_video and hasattr(render.image_settings, "media_type"):
+            try:
+                render.image_settings.media_type = "VIDEO"
+            except Exception:
+                pass
+        try:
+            render.image_settings.file_format = fmt
+        except Exception:
+            # Fallback for builds where FFMPEG is selected via media_type only
+            if wants_video and hasattr(render.image_settings, "media_type"):
+                try:
+                    render.image_settings.media_type = "VIDEO"
+                except Exception:
+                    pass
+    elif media_type and hasattr(render.image_settings, "media_type"):
+        try:
+            render.image_settings.media_type = str(media_type).upper()
+        except Exception:
+            pass
+    if "color_mode" in args:
+        try:
+            render.image_settings.color_mode = str(args["color_mode"]).upper()
+        except Exception:
+            pass
+    if "color_depth" in args:
+        try:
+            render.image_settings.color_depth = str(args["color_depth"])
+        except Exception:
+            pass
+    if "compression" in args:
+        try:
+            render.image_settings.compression = int(args["compression"])
+        except Exception:
+            pass
+    if "quality" in args:
+        try:
+            render.image_settings.quality = int(args["quality"])
+        except Exception:
+            pass
+    if render.image_settings.file_format == "FFMPEG" or str(file_format or "").upper() in {
+        "FFMPEG",
+        "MP4",
+        "VIDEO",
+        "MOVIE",
+    }:
+        ffmpeg = render.ffmpeg
+        container = str(args.get("container") or args.get("ffmpeg_format") or "MPEG4").upper()
+        codec = str(args.get("codec") or args.get("ffmpeg_codec") or "H264").upper()
+        try:
+            ffmpeg.format = container
+        except Exception:
+            pass
+        try:
+            ffmpeg.codec = codec
+        except Exception:
+            pass
+        if "ffmpeg_preset" in args or "preset" in args:
+            try:
+                ffmpeg.constant_rate_factor = str(args.get("ffmpeg_preset") or args.get("preset") or "MEDIUM").upper()
+            except Exception:
+                pass
+        if "audio_codec" in args:
+            try:
+                ffmpeg.audio_codec = str(args["audio_codec"]).upper()
+            except Exception:
+                pass
+        if "video_bitrate" in args:
+            try:
+                ffmpeg.video_bitrate = int(args["video_bitrate"])
+            except Exception:
+                pass
+    if "film_transparent" in args:
+        try:
+            render.film_transparent = bool(args["film_transparent"])
+        except Exception:
+            pass
+    if "use_overwrite" in args:
+        render.use_overwrite = bool(args["use_overwrite"])
+    if "use_placeholder" in args:
+        render.use_placeholder = bool(args["use_placeholder"])
+    blur: dict[str, Any] | None = None
     if "motion_blur" in args or "shutter" in args:
         blur = _enable_motion_blur(scene, shutter=float(args.get("shutter") or 0.5))
         if args.get("motion_blur") is False:
             try:
-                scene.render.use_motion_blur = False
+                render.use_motion_blur = False
             except Exception:
                 pass
             eevee = getattr(scene, "eevee", None)
@@ -989,8 +1108,30 @@ def _render_set(args: dict[str, Any], context) -> dict[str, Any]:
                 except Exception:
                     pass
             blur = {"enabled": False}
-        return {"ok": True, "engine": scene.render.engine, "motion_blur": blur}
-    return {"ok": True, "engine": scene.render.engine}
+    result: dict[str, Any] = {
+        "ok": True,
+        "engine": scene.render.engine,
+        "filepath": render.filepath,
+        "file_format": render.image_settings.file_format,
+        "resolution": [render.resolution_x, render.resolution_y],
+        "fps": int(render.fps),
+        "frame_start": int(scene.frame_start),
+        "frame_end": int(scene.frame_end),
+    }
+    if hasattr(render.image_settings, "media_type"):
+        try:
+            result["media_type"] = str(render.image_settings.media_type)
+        except Exception:
+            pass
+    if blur is not None:
+        result["motion_blur"] = blur
+    if hasattr(scene, "cycles"):
+        try:
+            result["samples"] = int(scene.cycles.samples)
+            result["denoise"] = bool(getattr(scene.cycles, "use_denoising", False))
+        except Exception:
+            pass
+    return result
 
 
 def _ensure_edit_selection(bm, select_all_if_empty: bool = True) -> int:
@@ -1756,6 +1897,43 @@ def _set_fcurve_interpolation(obj, interpolation: str = "BEZIER") -> None:
                     pass
 
 
+def _apply_modifier_props(obj, modifiers_spec: Any) -> list[str]:
+    """Set modifier properties and return RNA data_paths for keyframing.
+
+    modifiers_spec: {"Waves": {"time": 1.5}} or [{"name":"Waves","time":1.5}]
+    """
+    paths: list[str] = []
+    if not modifiers_spec:
+        return paths
+    items: list[tuple[str, dict[str, Any]]] = []
+    if isinstance(modifiers_spec, dict):
+        for mod_name, props in modifiers_spec.items():
+            if isinstance(props, dict):
+                items.append((str(mod_name), props))
+    elif isinstance(modifiers_spec, list):
+        for entry in modifiers_spec:
+            if not isinstance(entry, dict):
+                continue
+            mod_name = str(entry.get("name") or entry.get("modifier") or "")
+            if not mod_name:
+                continue
+            props = {k: v for k, v in entry.items() if k not in {"name", "modifier"}}
+            items.append((mod_name, props))
+    for mod_name, props in items:
+        mod = obj.modifiers.get(mod_name)
+        if not mod:
+            continue
+        for key, value in props.items():
+            if not hasattr(mod, key):
+                continue
+            try:
+                setattr(mod, key, value)
+                paths.append(f'modifiers["{mod_name}"].{key}')
+            except Exception:
+                pass
+    return paths
+
+
 def _anim_keyframes(args: dict[str, Any], context) -> dict[str, Any]:
     """Insert or clear keyframes on one or more objects (Blender 5.x safe)."""
     op = (args.get("op") or args.get("action") or "insert").lower()
@@ -1785,7 +1963,10 @@ def _anim_keyframes(args: dict[str, Any], context) -> dict[str, Any]:
             paths.append("rotation_euler")
         if args.get("scale") is True or isinstance(args.get("scale"), (list, tuple)):
             paths.append("scale")
-        if not paths:
+        if args.get("modifiers"):
+            # Modifier paths are resolved per object when applying props
+            pass
+        elif not paths:
             paths = ["location", "rotation_euler"]
     # dedupe
     paths = list(dict.fromkeys(str(p) for p in paths))
@@ -1794,6 +1975,7 @@ def _anim_keyframes(args: dict[str, Any], context) -> dict[str, Any]:
     interpolation = str(args.get("interpolation") or "BEZIER").upper()
     touched: list[str] = []
     keyframed = 0
+    used_paths: list[str] = list(paths)
 
     for name in names:
         obj = bpy.data.objects.get(name)
@@ -1809,7 +1991,7 @@ def _anim_keyframes(args: dict[str, Any], context) -> dict[str, Any]:
             touched.append(obj.name)
             continue
 
-        # Batch keyframes: args.keyframes = [{frame, location?, rotation?, scale?}, ...]
+        # Batch keyframes: args.keyframes = [{frame, location?, rotation?, scale?, modifiers?}, ...]
         batch = args.get("keyframes") or args.get("keys")
         if isinstance(batch, list) and batch:
             for item in batch:
@@ -1825,7 +2007,20 @@ def _anim_keyframes(args: dict[str, Any], context) -> dict[str, Any]:
                     )
                 if "scale" in item:
                     obj.scale = _as_vec3(item["scale"], tuple(obj.scale))
-                for path in paths:
+                item_paths = list(paths)
+                if "modifiers" in item:
+                    mod_paths = _apply_modifier_props(obj, item.get("modifiers"))
+                    item_paths = list(dict.fromkeys(item_paths + mod_paths))
+                    used_paths = list(dict.fromkeys(used_paths + mod_paths))
+                # Default transform paths when batch has loc/rot/scale but no explicit data_paths
+                if not item_paths:
+                    if "location" in item:
+                        item_paths.append("location")
+                    if "rotation" in item or "rotation_euler" in item:
+                        item_paths.append("rotation_euler")
+                    if "scale" in item:
+                        item_paths.append("scale")
+                for path in item_paths:
                     try:
                         obj.keyframe_insert(data_path=path, frame=f)
                         keyframed += 1
@@ -1847,7 +2042,12 @@ def _anim_keyframes(args: dict[str, Any], context) -> dict[str, Any]:
             )
         if "scale" in args and isinstance(args.get("scale"), (list, tuple)):
             obj.scale = _as_vec3(args["scale"], tuple(obj.scale))
-        for path in paths:
+        insert_paths = list(paths)
+        if args.get("modifiers"):
+            mod_paths = _apply_modifier_props(obj, args.get("modifiers"))
+            insert_paths = list(dict.fromkeys(insert_paths + mod_paths))
+            used_paths = list(dict.fromkeys(used_paths + mod_paths))
+        for path in insert_paths:
             try:
                 obj.keyframe_insert(data_path=path, frame=frame)
                 keyframed += 1
@@ -1876,7 +2076,7 @@ def _anim_keyframes(args: dict[str, Any], context) -> dict[str, Any]:
         "op": op,
         "objects": touched,
         "frame": frame,
-        "data_paths": paths,
+        "data_paths": used_paths,
         "keyframe_inserts": keyframed,
         "interpolation": interpolation,
     }

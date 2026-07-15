@@ -121,7 +121,10 @@ def is_refreshing() -> bool:
 
 
 def _http_json(url: str, timeout: float = 5.0) -> dict[str, Any]:
-    req = urllib.request.Request(url, headers={"Accept": "application/json"})
+    req = urllib.request.Request(
+        url,
+        headers=bridge_client.auth_headers({"Accept": "application/json"}),
+    )
     with urllib.request.urlopen(req, timeout=timeout) as resp:
         return json.loads(resp.read().decode("utf-8"))
 

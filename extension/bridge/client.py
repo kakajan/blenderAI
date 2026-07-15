@@ -27,6 +27,7 @@ _deferred_timer_registered = False
 _http_owner: str | None = None
 _use_http = False
 _cached_auth_token: str | None = None
+_last_start_error = ""
 
 
 def status_text() -> str:
@@ -37,9 +38,9 @@ def bridge_text() -> str:
     return _bridge
 
 
-def _online_access_ok() -> bool:
-    """Blender guidelines: honor Preferences → System → Allow Online Access."""
-    return bool(getattr(bpy.app, "online_access", True))
+def last_start_error() -> str:
+    """Human-readable reason for the last failed Start Sidecar attempt."""
+    return _last_start_error
 
 
 def _is_loopback_host(host: str) -> bool:
@@ -88,16 +89,18 @@ def auth_headers(extra: dict[str, str] | None = None) -> dict[str, str]:
 
 
 def _resolve_host_port(context=None) -> tuple[str, int] | None:
-    """Return (host, port) only when online_access + localhost are OK; else None."""
+    """Return (host, port) for the local sidecar; reject non-loopback hosts.
+
+    Localhost is allowed even when Preferences → System → Allow Online Access
+    is off (Blender 5.x default). That preference is for internet; the sidecar
+    is a local process on 127.0.0.1.
+    """
     global _status, _bridge
-    if not _online_access_ok():
-        _status = "offline"
-        _bridge = "disconnected"
-        return None
     prefs = preferences.get_prefs(context)
     host = prefs.sidecar_host if prefs else "127.0.0.1"
     port = int(prefs.sidecar_port if prefs else 8765)
     if not _is_loopback_host(host):
+        # Remote hosts would need Allow Online Access; we only support localhost.
         _status = "blocked: non-localhost host"
         _bridge = "disconnected"
         return None
@@ -174,8 +177,8 @@ def send_json(msg: dict[str, Any]) -> None:
 def _http_loop(host: str, port: int) -> None:
     """Stdlib HTTP long-poll bridge — works without websocket-client."""
     global _status, _bridge, _http_owner, _use_http
-    if not _online_access_ok() or not _is_loopback_host(host):
-        _status = "offline" if not _online_access_ok() else "blocked: non-localhost host"
+    if not _is_loopback_host(host):
+        _status = "blocked: non-localhost host"
         _bridge = "disconnected"
         return
 
@@ -184,10 +187,6 @@ def _http_loop(host: str, port: int) -> None:
     owner: str | None = None
 
     while not _stop_event.is_set():
-        if not _online_access_ok():
-            _status = "offline"
-            _bridge = "disconnected"
-            break
         try:
             if owner is None:
                 hello = _http_json(
@@ -234,8 +233,8 @@ def _http_loop(host: str, port: int) -> None:
 
 def _ws_loop(host: str, port: int):
     global _status, _bridge, _use_http
-    if not _online_access_ok() or not _is_loopback_host(host):
-        _status = "offline" if not _online_access_ok() else "blocked: non-localhost host"
+    if not _is_loopback_host(host):
+        _status = "blocked: non-localhost host"
         _bridge = "disconnected"
         return
 
@@ -248,10 +247,6 @@ def _ws_loop(host: str, port: int):
     _use_http = False
     url = f"ws://{host}:{port}/ws"
     while not _stop_event.is_set():
-        if not _online_access_ok():
-            _status = "offline"
-            _bridge = "disconnected"
-            break
         try:
             ws = websocket.create_connection(url, timeout=5)
             _status = "online"
@@ -259,8 +254,6 @@ def _ws_loop(host: str, port: int):
             ws.send(json.dumps(hello))
             ws.settimeout(0.5)
             while not _stop_event.is_set():
-                if not _online_access_ok():
-                    break
                 while not _send_queue.empty():
                     ws.send(json.dumps(_send_queue.get()))
                 try:
@@ -411,12 +404,11 @@ def start_sidecar_process(context=None) -> bool:
     alive, or a new process was spawned and is still running. Does not wait for
     /health — bridge thread updates status asynchronously.
     """
-    global _process, _status
+    global _process, _status, _last_start_error
     with _spawn_lock:
-        if not _online_access_ok():
-            _status = "offline"
-            return False
+        _last_start_error = ""
         if _resolve_host_port(context) is None:
+            _last_start_error = "Sidecar host must be localhost (127.0.0.1)"
             return False
 
         # Prefer bridge-thread status — do not poll /health on the main thread.
@@ -434,30 +426,49 @@ def start_sidecar_process(context=None) -> bool:
         sidecar = _resolve_sidecar_dir()
         if not sidecar:
             _status = "offline"
+            _last_start_error = (
+                "Sidecar not found — re-run the BlenderAI installer "
+                "(expected under %APPDATA%\\BlenderAI\\sidecar)"
+            )
+            start_bridge(context)
+            return False
+
+        if os.name == "nt":
+            venv_py = sidecar / ".venv" / "Scripts" / "python.exe"
+        else:
+            venv_py = sidecar / ".venv" / "bin" / "python"
+        if not venv_py.exists():
+            _status = "offline"
+            _last_start_error = (
+                f"Sidecar venv missing at {venv_py} — re-run the BlenderAI installer"
+            )
             start_bridge(context)
             return False
 
         _status = "starting"
         env = os.environ.copy()
         env["PYTHONPATH"] = str(sidecar) + os.pathsep + env.get("PYTHONPATH", "")
+        python_exe = str(venv_py)
 
+        popen_kwargs: dict[str, Any] = {
+            "cwd": str(sidecar),
+            "env": env,
+            "stdout": subprocess.DEVNULL,
+            "stderr": subprocess.DEVNULL,
+        }
         if os.name == "nt":
-            venv_py = sidecar / ".venv" / "Scripts" / "python.exe"
-        else:
-            venv_py = sidecar / ".venv" / "bin" / "python"
-        python_exe = str(venv_py) if venv_py.exists() else sys.executable
+            # Avoid a console flash; CREATE_NO_WINDOW is Windows-only.
+            popen_kwargs["creationflags"] = getattr(subprocess, "CREATE_NO_WINDOW", 0)
 
         try:
             _process = subprocess.Popen(
                 [python_exe, "-m", "blender_ai_sidecar.main", "serve"],
-                cwd=str(sidecar),
-                env=env,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
+                **popen_kwargs,
             )
-        except Exception:
+        except Exception as exc:
             _process = None
             _status = "offline"
+            _last_start_error = f"Failed to launch sidecar: {exc}"
             start_bridge(context)
             return False
 
@@ -465,6 +476,10 @@ def start_sidecar_process(context=None) -> bool:
         if _process.poll() is not None:
             _process = None
             _status = "offline"
+            _last_start_error = (
+                "Sidecar exited immediately — try Start BlenderAI.bat "
+                f"or run: {python_exe} -m blender_ai_sidecar.main serve"
+            )
             start_bridge(context)
             return False
 
@@ -500,12 +515,8 @@ def stop_sidecar_process():
 
 def _deferred_boot():
     """Run after register() so enable stays fast (Blender extension guidelines)."""
-    global _deferred_timer_registered, _status, _bridge
+    global _deferred_timer_registered
     _deferred_timer_registered = False
-    if not _online_access_ok():
-        _status = "offline"
-        _bridge = "disconnected"
-        return None
     prefs = preferences.get_prefs()
     if prefs and prefs.auto_start_sidecar:
         start_sidecar_process()

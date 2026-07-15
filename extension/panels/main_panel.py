@@ -84,6 +84,9 @@ class BLENDERAI_PT_main(Panel):
             row.operator("blender_ai.stop_sidecar", text="Stop", icon="PAUSE")
         else:
             row.operator("blender_ai.start_sidecar", text="Start", icon="PLAY")
+            err = bridge_client.last_start_error()
+            if err:
+                box.label(text=err[:64], icon="ERROR")
 
         webui_active = bool(getattr(context.window_manager, "blender_ai_webui_active", False))
         box = layout.box()

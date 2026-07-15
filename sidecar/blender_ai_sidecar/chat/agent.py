@@ -171,7 +171,7 @@ class ChatAgent:
             system_parts.append(
                 "Bridge status: Blender is NOT connected. Tools will fail. Tell the user the N-Panel "
                 "must show Bridge: connected (not only Sidecar: online). Enable the BlenderAI add-on, "
-                "ensure Allow Online Access is on, then wait a few seconds or click Start. "
+                "then wait a few seconds or click Start in the N-Panel. "
                 "Do not pretend objects were added."
             )
 

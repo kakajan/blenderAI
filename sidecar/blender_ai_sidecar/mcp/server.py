@@ -208,7 +208,7 @@ async def run_mcp_stdio() -> None:
                 "result": {
                     "protocolVersion": "2024-11-05",
                     "capabilities": {"tools": {}},
-                    "serverInfo": {"name": "blender-ai", "version": "1.0.1"},
+                    "serverInfo": {"name": "blender-ai", "version": "1.0.2"},
                 },
             }
         else:

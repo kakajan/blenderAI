@@ -183,7 +183,7 @@ More: [docs/architecture.md](docs/architecture.md)
 | Symptom | Check |
 |---------|--------|
 | Chat works, nothing appears in the scene | `/health` → `blender_connected` must be `true`; extension enabled; N-Panel visible |
-| Sidecar won’t start | Port `8765` free? Python 3.11+? Re-run installer |
+| Sidecar won’t start | Prefer N-Panel **Start** (localhost works even if Allow Online Access is off). Port `8765` free? Re-run installer if `%APPDATA%\\BlenderAI\\sidecar` is missing. Or run **Start BlenderAI.bat** |
 | Providers fail | Test Connection; Base URL; keyring permissions; Local Only off if you need cloud |
 | MCP tools idle | Blender open + addon on + sidecar up; restart Cursor after MCP config changes |
 | Extension won’t enable | Blender 4.2+; install from the flat extension zip; see [installer/README.md](installer/README.md) |
