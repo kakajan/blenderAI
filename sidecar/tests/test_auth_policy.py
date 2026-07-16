@@ -31,6 +31,18 @@ def test_registry_allowlist_includes_scene_create_object():
     assert "scene.create_object" in get_registry().allowlist()
 
 
+def test_registry_allowlist_includes_procedural_tools():
+    allow = get_registry().allowlist()
+    for name in (
+        "python.run",
+        "curve.create",
+        "mesh.loft_profiles",
+        "asset.list",
+        "asset.import",
+    ):
+        assert name in allow
+
+
 def test_bridge_invoke_requires_token(tmp_path, monkeypatch):
     monkeypatch.setenv("DATA_DIR", str(tmp_path))
     get_settings.cache_clear()

@@ -62,6 +62,16 @@ def run_tool(tool: str, args: dict[str, Any], context) -> dict[str, Any]:
             return _mesh_edge_loop(args, context)
         if tool == "mesh.profile_extrude":
             return _mesh_profile_extrude(args, context)
+        if tool == "mesh.loft_profiles":
+            return _mesh_loft_profiles(args, context)
+        if tool == "curve.create":
+            return _curve_create(args, context)
+        if tool == "python.run":
+            return _python_run(args, context)
+        if tool == "asset.list":
+            return _asset_list(args, context)
+        if tool == "asset.import":
+            return _asset_import(args, context)
         if tool == "object.transform":
             return _object_transform(args, context)
         if tool == "object.join":
@@ -2630,3 +2640,428 @@ def _anim_set_frame(args: dict[str, Any], context) -> dict[str, Any]:
     if args.get("shading"):
         _viewport_set_shading({"mode": args["shading"]}, context)
     return {"ok": True, "frame": frame}
+
+
+def _python_run(args: dict[str, Any], context) -> dict[str, Any]:
+    """Execute sandboxed bpy/bmesh Python for complex procedural modeling."""
+    from . import py_sandbox
+
+    code = args.get("code") or args.get("script") or ""
+    timeout = float(args.get("timeout") or py_sandbox.DEFAULT_TIMEOUT_SEC)
+    timeout = max(0.5, min(timeout, 60.0))
+
+    before = {o.name for o in bpy.data.objects}
+
+    try:
+        import mathutils
+        import random as _random
+
+        safe_globals: dict[str, Any] = {
+            "__builtins__": py_sandbox.build_safe_builtins(),
+            "bpy": bpy,
+            "bmesh": bmesh,
+            "math": math,
+            "mathutils": mathutils,
+            "random": _random,
+            "context": context,
+        }
+        # Pre-import so scripts need not import (still allowed if they do).
+        run_out = py_sandbox.run_sandboxed(code, globals_dict=safe_globals, timeout_sec=timeout)
+    except py_sandbox.SandboxError as exc:
+        return {"ok": False, "error": str(exc), "error_code": "sandbox_denied"}
+    except TimeoutError as exc:
+        return {"ok": False, "error": str(exc), "error_code": "timeout"}
+    except Exception as exc:
+        return {"ok": False, "error": f"python.run failed: {exc}", "error_code": "runtime_error"}
+
+    after = {o.name for o in bpy.data.objects}
+    created = sorted(after - before)
+    removed = sorted(before - after)
+    return {
+        "ok": True,
+        "stdout": (run_out.get("stdout") or "")[: py_sandbox.MAX_STDOUT_CHARS],
+        "result": run_out.get("result"),
+        "elapsed_sec": run_out.get("elapsed_sec"),
+        "objects_created": created,
+        "objects_removed": removed,
+    }
+
+
+def _curve_create(args: dict[str, Any], context) -> dict[str, Any]:
+    """Create a Bezier or NURBS curve from control points."""
+    _ensure_object_mode(context)
+    name = str(args.get("name") or "Curve")
+    points = args.get("points") or args.get("coords") or []
+    if not isinstance(points, list) or len(points) < 2:
+        return {"ok": False, "error": "curve.create requires at least 2 points [[x,y,z], ...]"}
+
+    curve_type = str(args.get("type") or args.get("spline_type") or "BEZIER").upper()
+    if curve_type in {"BEZ", "BEZIER"}:
+        curve_type = "BEZIER"
+    elif curve_type in {"NURBS", "NURB"}:
+        curve_type = "NURBS"
+    elif curve_type in {"POLY", "POLYGON"}:
+        curve_type = "POLY"
+    else:
+        return {"ok": False, "error": f"Unsupported curve type: {curve_type}"}
+
+    cyclic = bool(args.get("cyclic") or args.get("closed"))
+    dims = 3 if int(args.get("dimensions") or 3) >= 3 else 2
+
+    curve_data = bpy.data.curves.new(name=name, type="CURVE")
+    curve_data.dimensions = "3D" if dims == 3 else "2D"
+    spline = curve_data.splines.new(curve_type)
+
+    coords: list[list[float]] = []
+    for p in points:
+        if isinstance(p, (list, tuple)) and len(p) >= 2:
+            coords.append(
+                [
+                    _as_float(p[0], 0.0),
+                    _as_float(p[1], 0.0),
+                    _as_float(p[2], 0.0) if len(p) >= 3 else 0.0,
+                ]
+            )
+    if len(coords) < 2:
+        bpy.data.curves.remove(curve_data)
+        return {"ok": False, "error": "Need at least 2 valid [x,y,z] points"}
+
+    if curve_type == "BEZIER":
+        spline.bezier_points.add(len(coords) - 1)
+        for i, c in enumerate(coords):
+            bp = spline.bezier_points[i]
+            bp.co = c
+            bp.handle_left_type = "AUTO"
+            bp.handle_right_type = "AUTO"
+    else:
+        spline.points.add(len(coords) - 1)
+        for i, c in enumerate(coords):
+            spline.points[i].co = (c[0], c[1], c[2], 1.0)
+
+    spline.use_cyclic_u = cyclic
+
+    bevel = args.get("bevel_depth")
+    if bevel is not None:
+        curve_data.bevel_depth = _as_float(bevel, 0.0)
+    if args.get("bevel_resolution") is not None:
+        curve_data.bevel_resolution = int(args.get("bevel_resolution") or 4)
+    if args.get("extrude") is not None:
+        curve_data.extrude = _as_float(args.get("extrude"), 0.0)
+    if args.get("resolution_u") is not None:
+        curve_data.resolution_u = int(args.get("resolution_u") or 12)
+
+    taper_name = args.get("taper_object")
+    if taper_name:
+        taper = bpy.data.objects.get(str(taper_name))
+        if taper and taper.type == "CURVE":
+            curve_data.taper_object = taper
+
+    bevel_obj_name = args.get("bevel_object")
+    if bevel_obj_name:
+        bevel_obj = bpy.data.objects.get(str(bevel_obj_name))
+        if bevel_obj and bevel_obj.type == "CURVE":
+            curve_data.bevel_object = bevel_obj
+
+    obj = bpy.data.objects.new(name, curve_data)
+    loc = _as_vec3(args.get("location"), (0.0, 0.0, 0.0))
+    rot = _as_vec3(args.get("rotation"), (0.0, 0.0, 0.0))
+    scale = _as_vec3(args.get("scale"), (1.0, 1.0, 1.0))
+    obj.location = loc
+    obj.rotation_euler = rot
+    obj.scale = scale
+    context.collection.objects.link(obj)
+    _deselect_all_objects(context)
+    obj.select_set(True)
+    context.view_layer.objects.active = obj
+    return {
+        "ok": True,
+        "name": obj.name,
+        "type": "CURVE",
+        "spline_type": curve_type,
+        "point_count": len(coords),
+        "cyclic": cyclic,
+    }
+
+
+def _mesh_loft_profiles(args: dict[str, Any], context) -> dict[str, Any]:
+    """Loft multiple 2D cross-section profiles along an axis into a mesh hull."""
+    _ensure_object_mode(context)
+    profiles = args.get("profiles") or []
+    if not isinstance(profiles, list) or len(profiles) < 2:
+        return {"ok": False, "error": "mesh.loft_profiles requires profiles: list of ≥2 point lists"}
+
+    name = str(args.get("name") or "Loft")
+    axis = str(args.get("axis") or "y").lower()
+    axis_i = {"x": 0, "y": 1, "z": 2}.get(axis, 1)
+    close_caps = bool(args.get("close_caps") if args.get("close_caps") is not None else True)
+    shade_smooth = bool(args.get("shade_smooth") if args.get("shade_smooth") is not None else True)
+
+    # Each profile: {"points": [[u,v],...], "offset": float} or bare [[u,v],...]
+    parsed: list[tuple[float, list[tuple[float, float]]]] = []
+    for i, raw in enumerate(profiles):
+        if isinstance(raw, dict):
+            pts = raw.get("points") or raw.get("profile") or []
+            offset = _as_float(raw.get("offset") if raw.get("offset") is not None else raw.get("position"), float(i))
+        elif isinstance(raw, (list, tuple)):
+            pts = raw
+            offset = float(i)
+        else:
+            return {"ok": False, "error": f"Profile {i}: invalid format"}
+        if not isinstance(pts, list) or len(pts) < 3:
+            return {"ok": False, "error": f"Profile {i}: need ≥3 2D points"}
+        ring: list[tuple[float, float]] = []
+        for p in pts:
+            if not isinstance(p, (list, tuple)) or len(p) < 2:
+                return {"ok": False, "error": f"Profile {i}: points must be [u, v]"}
+            ring.append((_as_float(p[0], 0.0), _as_float(p[1], 0.0)))
+        parsed.append((offset, ring))
+
+    # Resample all rings to the same vertex count (use max).
+    n = max(len(r) for _, r in parsed)
+    if n > 256:
+        return {"ok": False, "error": "Too many points per profile (max 256)"}
+
+    def _resample(ring: list[tuple[float, float]], count: int) -> list[tuple[float, float]]:
+        if len(ring) == count:
+            return ring
+        # Closed ring interpolation along perimeter parameter 0..1
+        closed = ring + [ring[0]]
+        # Cumulative length
+        lengths = [0.0]
+        for a, b in zip(closed, closed[1:]):
+            lengths.append(lengths[-1] + math.hypot(b[0] - a[0], b[1] - a[1]))
+        total = lengths[-1] or 1.0
+        out: list[tuple[float, float]] = []
+        for k in range(count):
+            t = (k / count) * total
+            # Find segment
+            j = 0
+            while j < len(lengths) - 2 and lengths[j + 1] < t:
+                j += 1
+            seg_len = lengths[j + 1] - lengths[j]
+            u = 0.0 if seg_len < 1e-12 else (t - lengths[j]) / seg_len
+            a, b = closed[j], closed[j + 1]
+            out.append((a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u))
+        return out
+
+    rings = [(off, _resample(ring, n)) for off, ring in parsed]
+
+    def _to_world(u: float, v: float, offset: float) -> tuple[float, float, float]:
+        # u,v are the two axes perpendicular to loft axis
+        if axis_i == 0:  # loft along X → profile in YZ
+            return (offset, u, v)
+        if axis_i == 2:  # loft along Z → profile in XY
+            return (u, v, offset)
+        # default Y
+        return (u, offset, v)
+
+    verts: list[tuple[float, float, float]] = []
+    for offset, ring in rings:
+        for u, v in ring:
+            verts.append(_to_world(u, v, offset))
+
+    faces: list[list[int]] = []
+    # Bridge consecutive rings
+    for ri in range(len(rings) - 1):
+        base_a = ri * n
+        base_b = (ri + 1) * n
+        for k in range(n):
+            a0 = base_a + k
+            a1 = base_a + ((k + 1) % n)
+            b0 = base_b + k
+            b1 = base_b + ((k + 1) % n)
+            faces.append([a0, a1, b1, b0])
+
+    if close_caps:
+        # Cap first ring (fan) and last ring
+        first = list(range(0, n))
+        last = list(range((len(rings) - 1) * n, len(rings) * n))
+        if n >= 3:
+            # Triangulate via fan from first vertex
+            for k in range(1, n - 1):
+                faces.append([first[0], first[k], first[k + 1]])
+            for k in range(1, n - 1):
+                faces.append([last[0], last[k + 1], last[k]])
+
+    mesh = bpy.data.meshes.new(name)
+    mesh.from_pydata(verts, [], faces)
+    mesh.update()
+    obj = bpy.data.objects.new(name, mesh)
+    loc = _as_vec3(args.get("location"), (0.0, 0.0, 0.0))
+    rot = _as_vec3(args.get("rotation"), (0.0, 0.0, 0.0))
+    scale = _as_vec3(args.get("scale"), (1.0, 1.0, 1.0))
+    obj.location = loc
+    obj.rotation_euler = rot
+    obj.scale = scale
+    context.collection.objects.link(obj)
+
+    if shade_smooth:
+        try:
+            for poly in mesh.polygons:
+                poly.use_smooth = True
+        except Exception:
+            pass
+
+    _deselect_all_objects(context)
+    obj.select_set(True)
+    context.view_layer.objects.active = obj
+    return {
+        "ok": True,
+        "name": obj.name,
+        "type": "MESH",
+        "profile_count": len(rings),
+        "verts_per_profile": n,
+        "vertex_count": len(verts),
+        "face_count": len(faces),
+        "axis": axis,
+    }
+
+
+def _asset_list(args: dict[str, Any], context) -> dict[str, Any]:
+    """List .blend asset libraries under approved BlenderAI/assets roots."""
+    from .paths import assets_dir, allowed_roots
+
+    root = assets_dir()
+    blends: list[dict[str, Any]] = []
+    try:
+        if root.is_dir():
+            for path in sorted(root.rglob("*.blend")):
+                if not path.is_file():
+                    continue
+                # Ensure under allowed roots
+                ok = False
+                for ar in allowed_roots():
+                    try:
+                        path.resolve().relative_to(ar)
+                        ok = True
+                        break
+                    except ValueError:
+                        continue
+                if not ok:
+                    continue
+                blends.append(
+                    {
+                        "path": str(path),
+                        "name": path.stem,
+                        "relative": str(path.relative_to(root)).replace("\\", "/"),
+                    }
+                )
+    except Exception as exc:
+        return {"ok": False, "error": str(exc)}
+
+    # Optionally peek object names via bpy.data.libraries.load (read-only)
+    detail = bool(args.get("detail") or args.get("list_objects"))
+    if detail:
+        for entry in blends[:50]:
+            try:
+                with bpy.data.libraries.load(entry["path"], link=False) as (data_from, _data_to):
+                    entry["objects"] = list(data_from.objects or [])[:100]
+                    entry["collections"] = list(data_from.collections or [])[:50]
+            except Exception as exc:
+                entry["error"] = str(exc)
+
+    return {"ok": True, "assets_dir": str(root), "count": len(blends), "assets": blends}
+
+
+def _asset_import(args: dict[str, Any], context) -> dict[str, Any]:
+    """Append objects/collections from an approved .blend file."""
+    from .paths import require_allowed_file
+
+    _ensure_object_mode(context)
+    raw_path = args.get("path") or args.get("file") or ""
+    # Allow short names relative to assets dir
+    if raw_path and not str(raw_path).lower().endswith(".blend"):
+        from .paths import assets_dir
+
+        candidate = assets_dir() / f"{raw_path}.blend"
+        if candidate.is_file():
+            raw_path = str(candidate)
+        else:
+            candidate2 = assets_dir() / str(raw_path)
+            if candidate2.is_file():
+                raw_path = str(candidate2)
+
+    resolved, err = require_allowed_file(raw_path)
+    if err:
+        return err
+    assert resolved is not None
+
+    want_objects = args.get("objects") or args.get("object_names") or []
+    want_collections = args.get("collections") or args.get("collection_names") or []
+    if isinstance(want_objects, str):
+        want_objects = [want_objects]
+    if isinstance(want_collections, str):
+        want_collections = [want_collections]
+
+    link = bool(args.get("link"))
+    imported_objects: list[str] = []
+    imported_collections: list[str] = []
+    loaded_objects: list[Any] = []
+    loaded_collections: list[Any] = []
+
+    try:
+        with bpy.data.libraries.load(resolved, link=link) as (data_from, data_to):
+            avail_objs = list(data_from.objects or [])
+            avail_cols = list(data_from.collections or [])
+            if want_objects:
+                data_to.objects = [n for n in want_objects if n in avail_objs]
+            elif want_collections:
+                data_to.objects = []
+            else:
+                # Default: append all objects (cap)
+                data_to.objects = avail_objs[:80]
+            if want_collections:
+                data_to.collections = [n for n in want_collections if n in avail_cols]
+            else:
+                data_to.collections = []
+        # After the with-block, data_to holds the loaded datablocks.
+        loaded_objects = [o for o in (data_to.objects or []) if o is not None]
+        loaded_collections = [c for c in (data_to.collections or []) if c is not None]
+    except Exception as exc:
+        return {"ok": False, "error": f"Failed to load blend: {exc}"}
+
+    # Link appended datablocks into the scene
+    for obj in loaded_objects:
+        try:
+            context.collection.objects.link(obj)
+            imported_objects.append(obj.name)
+        except RuntimeError:
+            # Already linked
+            imported_objects.append(obj.name)
+
+    for col in loaded_collections:
+        try:
+            context.scene.collection.children.link(col)
+            imported_collections.append(col.name)
+            for obj in col.objects:
+                if obj.name not in imported_objects:
+                    imported_objects.append(obj.name)
+        except RuntimeError:
+            imported_collections.append(col.name)
+
+    loc = args.get("location")
+    if loc is not None and imported_objects:
+        offset = _as_vec3(loc, (0.0, 0.0, 0.0))
+        for oname in imported_objects:
+            obj = bpy.data.objects.get(oname)
+            if obj:
+                obj.location = (
+                    obj.location[0] + offset[0],
+                    obj.location[1] + offset[1],
+                    obj.location[2] + offset[2],
+                )
+
+    if imported_objects:
+        _deselect_all_objects(context)
+        last = bpy.data.objects.get(imported_objects[-1])
+        if last:
+            last.select_set(True)
+            context.view_layer.objects.active = last
+
+    return {
+        "ok": True,
+        "path": resolved,
+        "objects": imported_objects,
+        "collections": imported_collections,
+        "linked": link,
+    }

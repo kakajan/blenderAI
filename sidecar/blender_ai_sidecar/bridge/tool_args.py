@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from typing import Any
 
-MAX_MESH_PARTS = 20
-MAX_VERTS_PER_PART = 500
-MAX_FACES_PER_PART = 1000
-MAX_TOTAL_VERTS = 2000
+MAX_MESH_PARTS = 50
+MAX_VERTS_PER_PART = 2000
+MAX_FACES_PER_PART = 4000
+MAX_TOTAL_VERTS = 10000
 
 
 def _flatten_scalar(value: Any) -> Any:
@@ -62,6 +62,14 @@ def normalize_tool_args(tool: str, args: dict[str, Any]) -> dict[str, Any]:
         return _normalize_mesh_profile_extrude(args)
     if tool == "mesh.edge_loop":
         return _normalize_mesh_edge_loop(args)
+    if tool == "python.run":
+        return _normalize_python_run(args)
+    if tool == "curve.create":
+        return _normalize_curve_create(args)
+    if tool == "mesh.loft_profiles":
+        return _normalize_mesh_loft_profiles(args)
+    if tool == "asset.import":
+        return _normalize_asset_import(args)
     if tool != "scene.create_object":
         return args
     out = dict(args)
@@ -201,4 +209,108 @@ def _normalize_mesh_profile_extrude(args: dict[str, Any]) -> dict[str, Any]:
         out["rotation"] = _coerce_vec3(out["rotation"], (0.0, 0.0, 0.0))
     if out.get("scale") is not None:
         out["scale"] = _coerce_vec3(out["scale"], (1.0, 1.0, 1.0))
+    return out
+
+
+def _normalize_python_run(args: dict[str, Any]) -> dict[str, Any]:
+    from blender_ai_sidecar.bridge.python_guard import SandboxError, validate_code
+
+    out = dict(args)
+    code = out.get("code")
+    if code is None:
+        code = out.get("script")
+    if not isinstance(code, str):
+        raise ValueError("python.run requires a string 'code' argument")
+    try:
+        out["code"] = validate_code(code)
+    except SandboxError as exc:
+        raise ValueError(str(exc)) from exc
+    out.pop("script", None)
+    if out.get("timeout") is not None:
+        out["timeout"] = max(0.5, min(_as_float(out.get("timeout"), 20.0), 60.0))
+    return out
+
+
+def _normalize_curve_create(args: dict[str, Any]) -> dict[str, Any]:
+    out = dict(args)
+    points = out.get("points") or out.get("coords") or []
+    if not isinstance(points, list) or len(points) < 2:
+        raise ValueError("curve.create requires at least 2 points")
+    normalized: list[list[float]] = []
+    for p in points:
+        if isinstance(p, (list, tuple)) and len(p) >= 2:
+            z = _as_float(p[2], 0.0) if len(p) >= 3 else 0.0
+            normalized.append([_as_float(p[0], 0.0), _as_float(p[1], 0.0), z])
+    if len(normalized) < 2:
+        raise ValueError("curve.create requires at least 2 valid points")
+    if len(normalized) > 500:
+        raise ValueError("curve.create supports at most 500 points")
+    out["points"] = normalized
+    out.pop("coords", None)
+    if out.get("bevel_depth") is not None:
+        out["bevel_depth"] = _as_float(out["bevel_depth"], 0.0)
+    if out.get("location") is not None:
+        out["location"] = _coerce_vec3(out["location"], (0.0, 0.0, 0.0))
+    if out.get("rotation") is not None:
+        out["rotation"] = _coerce_vec3(out["rotation"], (0.0, 0.0, 0.0))
+    if out.get("scale") is not None:
+        out["scale"] = _coerce_vec3(out["scale"], (1.0, 1.0, 1.0))
+    return out
+
+
+def _normalize_mesh_loft_profiles(args: dict[str, Any]) -> dict[str, Any]:
+    out = dict(args)
+    profiles = out.get("profiles")
+    if not isinstance(profiles, list) or len(profiles) < 2:
+        raise ValueError("mesh.loft_profiles requires profiles: list of ≥2 point lists")
+    if len(profiles) > 64:
+        raise ValueError("mesh.loft_profiles supports at most 64 profiles")
+    normalized_profiles: list[Any] = []
+    for i, raw in enumerate(profiles):
+        if isinstance(raw, dict):
+            pts = raw.get("points") or raw.get("profile") or []
+            if not isinstance(pts, list) or len(pts) < 3:
+                raise ValueError(f"Profile {i}: need ≥3 2D points")
+            ring = []
+            for p in pts:
+                if not isinstance(p, (list, tuple)) or len(p) < 2:
+                    raise ValueError(f"Profile {i}: points must be [u, v]")
+                ring.append([_as_float(p[0], 0.0), _as_float(p[1], 0.0)])
+            entry: dict[str, Any] = {"points": ring}
+            if raw.get("offset") is not None or raw.get("position") is not None:
+                entry["offset"] = _as_float(
+                    raw.get("offset") if raw.get("offset") is not None else raw.get("position"),
+                    float(i),
+                )
+            normalized_profiles.append(entry)
+        elif isinstance(raw, (list, tuple)):
+            if len(raw) < 3:
+                raise ValueError(f"Profile {i}: need ≥3 2D points")
+            ring = []
+            for p in raw:
+                if not isinstance(p, (list, tuple)) or len(p) < 2:
+                    raise ValueError(f"Profile {i}: points must be [u, v]")
+                ring.append([_as_float(p[0], 0.0), _as_float(p[1], 0.0)])
+            normalized_profiles.append(ring)
+        else:
+            raise ValueError(f"Profile {i}: invalid format")
+    out["profiles"] = normalized_profiles
+    if out.get("location") is not None:
+        out["location"] = _coerce_vec3(out["location"], (0.0, 0.0, 0.0))
+    if out.get("rotation") is not None:
+        out["rotation"] = _coerce_vec3(out["rotation"], (0.0, 0.0, 0.0))
+    if out.get("scale") is not None:
+        out["scale"] = _coerce_vec3(out["scale"], (1.0, 1.0, 1.0))
+    return out
+
+
+def _normalize_asset_import(args: dict[str, Any]) -> dict[str, Any]:
+    out = dict(args)
+    path = out.get("path") or out.get("file")
+    if not path or not str(path).strip():
+        raise ValueError("asset.import requires a 'path' to a .blend file (under BlenderAI/assets)")
+    out["path"] = str(path).strip()
+    out.pop("file", None)
+    if out.get("location") is not None:
+        out["location"] = _coerce_vec3(out["location"], (0.0, 0.0, 0.0))
     return out

@@ -64,6 +64,18 @@ def test_resolve_skill_tools_modeling_base():
     assert "mesh.profile_extrude" in surface_allowed
     assert "mesh.edge_loop" in surface_allowed
     assert "scene.create_object" in surface_allowed
+    # Modeling base merge should include procedural tools.
+    assert "python.run" in surface_allowed
+    assert "mesh.loft_profiles" in surface_allowed
+
+    procedural = engine.get("modeling.procedural")
+    assert procedural is not None
+    assert procedural.get("max_steps") == 96
+    proc_allowed = resolve_skill_tools(procedural)
+    assert "python.run" in proc_allowed
+    assert "curve.create" in proc_allowed
+    assert "asset.import" in proc_allowed
+    assert "mesh.loft_profiles" in proc_allowed
 
 
 def test_user_skill_crud(tmp_path: Path):

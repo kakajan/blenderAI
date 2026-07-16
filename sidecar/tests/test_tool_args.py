@@ -95,18 +95,46 @@ def test_mesh_from_data_rejects_empty_parts():
 def test_mesh_from_data_rejects_too_many_parts():
     parts = [
         {"name": f"P{i}", "vertices": [[0, 0, 0], [1, 0, 0], [0, 1, 0]], "faces": [[0, 1, 2]]}
-        for i in range(21)
+        for i in range(51)
     ]
-    with pytest.raises(ValueError, match="at most 20 parts"):
+    with pytest.raises(ValueError, match="at most 50 parts"):
         normalize_tool_args("mesh.from_data", {"parts": parts})
 
 
 def test_mesh_from_data_rejects_vertex_cap():
-    verts = [[float(i), 0, 0] for i in range(501)]
+    verts = [[float(i), 0, 0] for i in range(2001)]
     faces = [[0, 1, 2]]
-    with pytest.raises(ValueError, match="exceeds limit of 500"):
+    with pytest.raises(ValueError, match="exceeds limit of 2000"):
         normalize_tool_args(
             "mesh.from_data",
             {"parts": [{"name": "Huge", "vertices": verts, "faces": faces}]},
         )
+
+
+def test_python_run_normalizes_and_validates():
+    out = normalize_tool_args(
+        "python.run",
+        {"code": "import bpy\nresult = {'ok': True}\n"},
+    )
+    assert "import bpy" in out["code"]
+    assert "result" in out["code"]
+
+
+def test_python_run_rejects_forbidden_import():
+    with pytest.raises(ValueError, match="Import not allowed"):
+        normalize_tool_args("python.run", {"code": "import os\nos.system('x')\n"})
+
+
+def test_curve_create_normalizes_points():
+    out = normalize_tool_args(
+        "curve.create",
+        {"name": "Rope", "points": [[0, 0], [1, "0.5", 0.2]], "bevel_depth": "0.02"},
+    )
+    assert out["points"][1] == [1.0, 0.5, 0.2]
+    assert out["bevel_depth"] == 0.02
+
+
+def test_mesh_loft_profiles_requires_two():
+    with pytest.raises(ValueError, match="≥2"):
+        normalize_tool_args("mesh.loft_profiles", {"profiles": [[[0, 0], [1, 0], [0, 1]]]})
 

@@ -30,6 +30,27 @@ _PROP_RE = re.compile(
     r"\b(prop|furniture|chair|table|vehicle|weapon|tool|وسیله|مبل|صندلی)\b",
     re.IGNORECASE,
 )
+_COMPLEX_OBJECT_RE = re.compile(
+    r"\b("
+    r"boat|ship|yacht|canoe|kayak|rowboat|sailboat|"
+    r"car|truck|vehicle|airplane|aircraft|helicopter|"
+    r"spaceship|spacecraft|starship|rocket|ufo|mecha|mech|"
+    r"robot|android|cyborg|drone|"
+    r"house|building|castle|palace|bridge|furniture|"
+    r"mountain|hill|cliff|rockscape|terrain|"
+    r"tree|forest|pine|oak|palm|willow|"
+    r"guitar|violin|piano|weapon|sword|"
+    r"قایق|کشتی|قایقرانی|قایق\s*پارویی|بادبانی|"
+    r"ماشین|خودرو|کامیون|هواپیما|هلیکوپتر|"
+    r"سفینه|فضاپیما|موشک|یو\s*اف\s*او|"
+    r"ربات|روبوت|آندروید|پهپاد|مکا|"
+    r"خانه|ساختمان|قلعه|قصر|پل|مبلمان|"
+    r"کوه|تپه|صخره|"
+    r"درخت|جنگل|کاج|نخل|"
+    r"گیتار|ویولن|پیانو|شمشیر|سلاح"
+    r")\b",
+    re.IGNORECASE,
+)
 
 
 @dataclass
@@ -322,6 +343,65 @@ def _strategy_bridge_loft() -> ModelingStrategy:
     )
 
 
+def _strategy_procedural_construction() -> ModelingStrategy:
+    return ModelingStrategy(
+        id="procedural_construction",
+        title="Procedural: Part plan → Skeleton → Loft/Script form → Details → Materials → Verify",
+        rationale=(
+            "Complex real-world object — build part-by-part with loft, curves, "
+            "and sandboxed python.run; never a single deformed box."
+        ),
+        phases=[
+            StrategyPhase(
+                name="Part plan",
+                goal="Brief real-world part list before any geometry.",
+                tools=["scene.summary", "asset.list"],
+                hints=[
+                    "Name every planned part (keel, ribs, planks, gunwale…).",
+                    "Check asset.list for reusable hardware before reinventing.",
+                ],
+            ),
+            StrategyPhase(
+                name="Skeleton",
+                goal="Primary guides — keel/stem curves or guide empties at real scale.",
+                tools=["curve.create", "scene.create_object", "object.transform", "collection.organize"],
+                hints=["Establish length/beam/height early with named objects."],
+            ),
+            StrategyPhase(
+                name="Primary form",
+                goal="Hull/body via mesh.loft_profiles or python.run plank/rib arrays.",
+                tools=["mesh.loft_profiles", "python.run", "mesh.profile_extrude", "modifier.add"],
+                hints=[
+                    "Prefer loft for continuous shells; python.run for many curved planks.",
+                    "Do not fake the whole object with one cube.",
+                ],
+            ),
+            StrategyPhase(
+                name="Details & joinery",
+                goal="Secondary structure, hardware, imported assets, parenting.",
+                tools=["python.run", "curve.create", "asset.import", "object.parent", "mesh.from_data", "mesh.ops"],
+                hints=["Parent parts under a root Empty; keep names consistent."],
+            ),
+            StrategyPhase(
+                name="Materials & verify",
+                goal="Believable materials + front/side/back capture and fixes.",
+                tools=["material.create", "material.assign", "viewport.capture", "viewport.set_shading"],
+                hints=["Score each view; fix weakest silhouette before finishing."],
+            ),
+        ],
+        transitions=[
+            "Emit a short part list before the first create/loft/python tool.",
+            "Primary form must use loft or python.run — not only primitives.",
+            "Never claim done without multi-view viewport.capture.",
+        ],
+        anti_patterns=[
+            "One cube → bevel → claim boat/vehicle/building",
+            "Hollowed box as a complete hull",
+            "10+ loose primitives without loft/script",
+        ],
+    )
+
+
 def _strategy_primitives_only() -> ModelingStrategy:
     return ModelingStrategy(
         id="primitives_only",
@@ -365,6 +445,7 @@ _STRATEGIES: dict[str, ModelingStrategy] = {
     "low_poly_direct": _strategy_low_poly_direct(),
     "reference_turnaround": _strategy_reference_turnaround(),
     "bridge_loft": _strategy_bridge_loft(),
+    "procedural_construction": _strategy_procedural_construction(),
     "primitives_only": _strategy_primitives_only(),
     "blockout_only": _strategy_blockout_only(),
 }
@@ -379,6 +460,7 @@ _SKILL_DEFAULT_STRATEGY: dict[str, str] = {
     "modeling.turnaround_character": "reference_turnaround",
     "modeling.create_mesh": "hybrid_blockout_surface",
     "modeling.modify_mesh": "hybrid_blockout_surface",
+    "modeling.procedural": "procedural_construction",
 }
 
 
@@ -400,10 +482,16 @@ def plan_modeling_strategy(
     if sid in _SKILL_DEFAULT_STRATEGY:
         key = _SKILL_DEFAULT_STRATEGY[sid]
         # Refine defaults using message signals.
+        if sid == "modeling.procedural":
+            return _STRATEGIES["procedural_construction"]
         if sid == "modeling.surface_advanced" and (_REFERENCE_RE.search(msg) or has_reference_image):
             return _STRATEGIES["reference_turnaround"]
+        if sid == "modeling.surface_advanced" and _COMPLEX_OBJECT_RE.search(msg):
+            return _STRATEGIES["procedural_construction"]
         if sid == "modeling.character_stylized" and (_SCULPT_RE.search(msg) or _DETAIL_RE.search(msg)):
             return _STRATEGIES["hybrid_sculpt_surface"]
+        if sid == "modeling.create_mesh" and _COMPLEX_OBJECT_RE.search(msg):
+            return _STRATEGIES["procedural_construction"]
         if sid == "modeling.create_mesh" and _HARDSURFACE_RE.search(msg):
             return _STRATEGIES["hardsurface_boolean"]
         return _STRATEGIES[key]
@@ -415,6 +503,8 @@ def plan_modeling_strategy(
         return _STRATEGIES["blockout_only"]
     if _LOWPOLY_RE.search(msg):
         return _STRATEGIES["low_poly_direct"]
+    if _COMPLEX_OBJECT_RE.search(msg):
+        return _STRATEGIES["procedural_construction"]
     if _BRIDGE_RE.search(msg):
         return _STRATEGIES["bridge_loft"]
     if _HARDSURFACE_RE.search(msg) or (_PROP_RE.search(msg) and not _CHARACTER_RE.search(msg)):

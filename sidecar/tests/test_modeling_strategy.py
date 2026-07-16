@@ -44,6 +44,37 @@ def test_strategy_bridge_loft():
     assert s.id == "bridge_loft"
 
 
+def test_strategy_procedural_boat():
+    s = plan_modeling_strategy("Build a realistic wooden boat with curved planks")
+    assert s is not None
+    assert s.id == "procedural_construction"
+    assert any("loft" in t or t == "python.run" for p in s.phases for t in p.tools)
+
+
+def test_strategy_procedural_skill_default():
+    s = plan_modeling_strategy("anything", skill_id="modeling.procedural")
+    assert s is not None
+    assert s.id == "procedural_construction"
+
+
+def test_strategy_procedural_mountain_and_tree():
+    for msg in (
+        "Create a rocky mountain landscape",
+        "یک کوه بلند بساز",
+        "Build an oak tree with canopy",
+        "یک درخت واقعی بساز",
+        "Build a castle palace",
+        "یک خانه آجری بساز",
+        "Build a starship spaceship",
+        "یک سفینه بساز",
+        "Create a mecha robot android",
+        "یک ربات پیچیده بساز",
+    ):
+        s = plan_modeling_strategy(msg)
+        assert s is not None, msg
+        assert s.id == "procedural_construction", msg
+
+
 def test_strategy_blockout_only():
     s = plan_modeling_strategy("Quick blockout silhouette only")
     assert s is not None

@@ -1059,7 +1059,7 @@ def _create_macos_app(data: Path, start_script: Path, sidecar_dir: Path) -> None
   <key>CFBundleIdentifier</key><string>ai.blenderai.sidecar</string>
   <key>CFBundleName</key><string>BlenderAI</string>
   <key>CFBundlePackageType</key><string>APPL</string>
-  <key>CFBundleVersion</key><string>1.0.2</string>
+  <key>CFBundleVersion</key><string>1.0.3</string>
 </dict>
 </plist>
 """,

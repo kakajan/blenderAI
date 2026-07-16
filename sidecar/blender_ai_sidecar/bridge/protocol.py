@@ -113,7 +113,23 @@ def bridge_transport() -> str:
     return "none"
 
 
-async def request_tool(tool: str, args: dict[str, Any] | None = None, timeout: float = 30.0) -> dict[str, Any]:
+# Per-tool round-trip timeouts (seconds). Default remains 30s.
+TOOL_TIMEOUTS: dict[str, float] = {
+    "python.run": 120.0,
+    "asset.import": 60.0,
+    "mesh.from_data": 60.0,
+    "sculpt.remesh": 60.0,
+    "mesh.loft_profiles": 60.0,
+}
+
+
+def timeout_for_tool(tool: str, override: float | None = None) -> float:
+    if override is not None and override > 0:
+        return float(override)
+    return float(TOOL_TIMEOUTS.get(tool, 30.0))
+
+
+async def request_tool(tool: str, args: dict[str, Any] | None = None, timeout: float | None = None) -> dict[str, Any]:
     if not blender_transport_ready():
         return {"ok": False, "error": "Blender not connected"}
     from blender_ai_sidecar.bridge.tool_args import normalize_tool_args
@@ -123,6 +139,7 @@ async def request_tool(tool: str, args: dict[str, Any] | None = None, timeout: f
         raw_args = normalize_tool_args(tool, raw_args)
     except ValueError as exc:
         return {"ok": False, "error": str(exc)}
+    wait = timeout_for_tool(tool, timeout)
     req_id = str(uuid.uuid4())
     loop = asyncio.get_running_loop()
     fut: asyncio.Future = loop.create_future()
@@ -133,7 +150,7 @@ async def request_tool(tool: str, args: dict[str, Any] | None = None, timeout: f
             await _blender_send(msg)
         else:
             await _get_outbound().put(msg)
-        return await asyncio.wait_for(fut, timeout=timeout)
+        return await asyncio.wait_for(fut, timeout=wait)
     except asyncio.TimeoutError:
         return {"ok": False, "error": "Tool timeout"}
     finally:

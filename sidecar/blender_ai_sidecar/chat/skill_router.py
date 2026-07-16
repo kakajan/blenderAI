@@ -12,7 +12,33 @@ SURFACE_TOOLS = frozenset(
         "mesh.profile_extrude",
         "mesh.edge_loop",
         "mesh.select",
+        "mesh.loft_profiles",
+        "curve.create",
+        "python.run",
+        "asset.import",
     }
+)
+
+_COMPLEX_OBJECT_RE = re.compile(
+    r"\b("
+    r"boat|ship|yacht|canoe|kayak|rowboat|sailboat|"
+    r"car|truck|vehicle|airplane|aircraft|helicopter|"
+    r"spaceship|spacecraft|starship|rocket|ufo|mecha|mech|"
+    r"robot|android|cyborg|drone|"
+    r"house|building|castle|palace|bridge|furniture|"
+    r"mountain|hill|cliff|rockscape|terrain|"
+    r"tree|forest|pine|oak|palm|willow|"
+    r"guitar|violin|piano|weapon|sword|"
+    r"قایق|کشتی|قایقرانی|قایق\s*پارویی|بادبانی|"
+    r"ماشین|خودرو|کامیون|هواپیما|هلیکوپتر|"
+    r"سفینه|فضاپیما|موشک|یو\s*اف\s*او|"
+    r"ربات|روبوت|آندروید|پهپاد|مکا|"
+    r"خانه|ساختمان|قلعه|قصر|پل|مبلمان|"
+    r"کوه|تپه|صخره|"
+    r"درخت|جنگل|کاج|نخل|"
+    r"گیتار|ویولن|پیانو|شمشیر|سلاح"
+    r")\b",
+    re.IGNORECASE,
 )
 
 _CHARACTER_RE = re.compile(
@@ -64,6 +90,8 @@ def infer_skill(user_message: str, skill_id: str | None = None) -> str | None:
         return "modeling.blockout"
     if _LOWPOLY_RE.search(msg):
         return "modeling.low_poly"
+    if _COMPLEX_OBJECT_RE.search(msg):
+        return "modeling.procedural"
     if _HARDSURFACE_RE.search(msg):
         return "modeling.hardsurface"
     if _CHARACTER_RE.search(msg) and (_DETAIL_RE.search(msg) or len(msg) > 40):
@@ -113,6 +141,6 @@ def is_surface_tool(tool: str) -> bool:
 def primitive_guardrail_message(streak: int) -> str:
     return (
         f"You placed {streak} primitives without surface edits. "
-        "Use mesh.extrude or mesh.ops (extrude/inset/bevel) or mesh.profile_extrude next — "
-        "do not add more loose primitives."
+        "Use mesh.extrude / mesh.ops / mesh.profile_extrude / mesh.loft_profiles / "
+        "curve.create / python.run next — do not add more loose primitives."
     )

@@ -44,6 +44,7 @@ TOOL_RE = re.compile(
 )
 
 DEFAULT_MAX_STEPS = 32
+HARD_MAX_STEPS = 96
 MODELING_DOMAINS = {"modeling"}
 HISTORY_LIMIT = 24
 
@@ -57,10 +58,10 @@ class ChatAgent:
 
     def _resolve_max_steps(self, skill: dict[str, Any] | None, max_steps: int | None) -> int:
         if max_steps is not None and max_steps > 0:
-            return min(int(max_steps), 64)
+            return min(int(max_steps), HARD_MAX_STEPS)
         if skill and skill.get("max_steps"):
             try:
-                return min(int(skill["max_steps"]), 64)
+                return min(int(skill["max_steps"]), HARD_MAX_STEPS)
             except (TypeError, ValueError):
                 pass
         if skill:
@@ -142,10 +143,14 @@ class ChatAgent:
             pass
 
         system_parts.append(
-            "Adaptive rules: prefer composing allowlisted primitives; "
+            "Adaptive rules: prefer composing allowlisted tools "
+            "(mesh.loft_profiles, curve.create, python.run, mesh.ops, modifiers); "
             "use blender.introspect (read-only) when unsure about Blender version/API; "
-            "never invent freeform Python execution. If a needed primitive is missing, "
-            "say so and record a capability gap instead of claiming success."
+            "sandboxed python.run is allowed for complex procedural geometry "
+            "(imports: bpy/bmesh/math/mathutils/random only — no os/files/network). "
+            "Never invent freeform Python outside python.run. "
+            "If a needed primitive is missing, say so and record a capability gap "
+            "instead of claiming success."
         )
 
         if strategy_text:
@@ -295,7 +300,9 @@ class ChatAgent:
         critique_done = 0
         if critique_rounds is None:
             sid = str((skill or {}).get("id") or "")
-            if sid.startswith("modeling.") or sid.startswith("review.iterate"):
+            if sid == "modeling.procedural":
+                critique_rounds = 2
+            elif sid.startswith("modeling.") or sid.startswith("review.iterate"):
                 critique_rounds = 1
             else:
                 critique_rounds = 0

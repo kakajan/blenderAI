@@ -3,8 +3,21 @@ from blender_ai_sidecar.bridge.tool_args import normalize_tool_args
 
 
 def test_allowlist_mesh_tools():
-    for tool in ("mesh.extrude", "mesh.edge_loop", "mesh.profile_extrude", "mesh.select", "mesh.ops"):
-        assert tool in bridge.ALLOWLIST
+    from blender_ai_sidecar.tools import get_registry
+
+    allow = get_registry().allowlist()
+    for tool in (
+        "mesh.extrude",
+        "mesh.edge_loop",
+        "mesh.profile_extrude",
+        "mesh.select",
+        "mesh.ops",
+        "mesh.loft_profiles",
+        "curve.create",
+        "python.run",
+    ):
+        assert tool in allow
+        assert tool in bridge._allowlist_from_registry()
 
 
 def test_mesh_extrude_normalizes_distance():

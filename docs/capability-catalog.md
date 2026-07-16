@@ -17,6 +17,11 @@ Priority: `P0` (ship soon) · `P1` · `P2`
 | Extrude / inset / bevel | modeling | `mesh.ops`, `mesh.extrude`, `mesh.select` | `modeling.surface_advanced`, `modeling.modify_mesh` | done | P0 |
 | Build mesh from verts/faces | modeling | `mesh.from_data` | `modeling.low_poly` | done | P0 |
 | Profile extrude / edge loop | modeling | `mesh.profile_extrude`, `mesh.edge_loop` | `modeling.hardsurface` | done | P0 |
+| Loft multi-profile hulls | modeling | `mesh.loft_profiles` | `modeling.procedural` | done | P0 |
+| Curves (Bezier/NURBS) | modeling | `curve.create` | `modeling.procedural` | done | P0 |
+| Sandboxed procedural Python | modeling | `python.run` | `modeling.procedural` | done | P0 |
+| Local .blend asset append | modeling | `asset.list`, `asset.import` | `modeling.procedural` | done | P1 |
+| Complex object construction | modeling | loft + curve + python.run + assets | `modeling.procedural` | done | P0 |
 | Boolean / cleanup | modeling | `modifier.add`, `modifier.apply`, `mesh.ops` | `modeling.boolean`, `modeling.cleanup` | partial | P1 |
 | Stylized character pipeline | modeling | surface + materials + capture | `modeling.character_stylized`, `modeling.turnaround_character` | done | P0 |
 | Duplicate / delete / parent | modeling | `object.duplicate`, `object.delete`, `object.parent` | — | done | P0 |
@@ -113,4 +118,6 @@ Priority: `P0` (ship soon) · `P1` · `P2`
 1. Add a row here first (intent + status `missing`).
 2. Prefer a **primitive** if many intents need it.
 3. Prefer a **skill/recipe** if composing existing primitives is enough.
-4. Never add freeform Python execution as a tool.
+4. Never add **unsandboxed** freeform Python execution. Use `python.run` only
+   (AST-validated; imports limited to `bpy`/`bmesh`/`math`/`mathutils`/`random`;
+   no files/network/os; time/size limits; undo-backed).

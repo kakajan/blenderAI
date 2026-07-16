@@ -39,6 +39,44 @@ _TOOL_SPECS: list[ToolSpec] = [
     ToolSpec(name="mesh.edge_loop", doc="Select/cut edge loops.", risk="medium", domains=["modeling"], tags=["modeling", "surface"]),
     ToolSpec(name="mesh.profile_extrude", doc="Extrude a profile curve into mesh features.", risk="medium", domains=["modeling"], tags=["modeling", "surface"]),
     ToolSpec(name="mesh.ops", doc="Apply mesh operators (bevel, inset, subdivide, …).", risk="medium", domains=["modeling"], tags=["modeling", "surface"]),
+    ToolSpec(
+        name="mesh.loft_profiles",
+        doc="Loft ≥2 cross-section profiles along an axis into a hull mesh (boat hulls, bottles, fuselages).",
+        risk="medium",
+        domains=["modeling"],
+        tags=["modeling", "surface", "procedural"],
+    ),
+    ToolSpec(
+        name="curve.create",
+        doc="Create a Bezier/NURBS/POLY curve from control points (optional bevel_depth for ropes/rails).",
+        risk="medium",
+        domains=["modeling"],
+        tags=["modeling", "surface", "procedural"],
+    ),
+    ToolSpec(
+        name="python.run",
+        doc=(
+            "Run sandboxed bpy/bmesh Python for complex procedural geometry "
+            "(imports limited to bpy/bmesh/math/mathutils/random; no files/network/os)."
+        ),
+        risk="medium",
+        domains=["modeling"],
+        tags=["modeling", "surface", "procedural"],
+    ),
+    ToolSpec(
+        name="asset.list",
+        doc="List local .blend assets under BlenderAI/assets (read-only).",
+        risk="read",
+        domains=["modeling", "scene"],
+        tags=["modeling", "files", "read"],
+    ),
+    ToolSpec(
+        name="asset.import",
+        doc="Append objects/collections from an approved local .blend under BlenderAI/assets.",
+        risk="medium",
+        domains=["modeling", "scene"],
+        tags=["modeling", "files", "procedural"],
+    ),
     ToolSpec(name="object.transform", doc="Translate/rotate/scale an object.", risk="low", domains=["modeling"], tags=["modeling"]),
     ToolSpec(name="object.join", doc="Join selected objects.", risk="medium", domains=["modeling"], tags=["modeling"]),
     ToolSpec(name="object.duplicate", doc="Duplicate object(s).", risk="low", domains=["modeling"], tags=["modeling"]),

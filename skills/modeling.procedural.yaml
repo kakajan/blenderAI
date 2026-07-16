@@ -1,0 +1,47 @@
+id: modeling.procedural
+version: 1
+name: Procedural Construction
+domains: [modeling]
+tools:
+  - scene.summary
+  - blender.introspect
+  - scene.create_object
+  - mesh.from_data
+  - mesh.select
+  - mesh.ops
+  - mesh.extrude
+  - mesh.edge_loop
+  - mesh.profile_extrude
+  - mesh.loft_profiles
+  - curve.create
+  - python.run
+  - asset.list
+  - asset.import
+  - selection.set
+  - object.transform
+  - object.join
+  - object.duplicate
+  - object.delete
+  - object.parent
+  - modifier.add
+  - modifier.apply
+  - material.create
+  - material.assign
+  - uv.unwrap
+  - sculpt.remesh
+  - viewport.capture
+  - viewport.set_shading
+  - collection.organize
+  - scene.reference_image
+  - light.set
+  - camera.set
+system_prompt: presets/modeling/procedural_construction.md
+risk: medium
+requires_confirmation: false
+viewport_capture: optional
+max_steps: 96
+description: >-
+  Full procedural construction of complex real-world objects —
+  boats, vehicles, spaceships, robots, houses, castles, mountains, trees, furniture —
+  via loft, curves, sandboxed python.run, and optional local assets.
+  Not primitive stacking.

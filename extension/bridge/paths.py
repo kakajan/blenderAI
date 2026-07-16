@@ -30,7 +30,14 @@ def allowed_roots() -> list[Path]:
         pass
 
     try:
-        roots.append(_blenderai_data_dir().resolve())
+        data = _blenderai_data_dir().resolve()
+        roots.append(data)
+        assets = (data / "assets").resolve()
+        roots.append(assets)
+        try:
+            assets.mkdir(parents=True, exist_ok=True)
+        except Exception:
+            pass
     except Exception:
         pass
 
@@ -47,6 +54,16 @@ def allowed_roots() -> list[Path]:
             roots.append(pictures.resolve())
     except Exception:
         pass
+
+
+def assets_dir() -> Path:
+    """Preferred local asset library root (%APPDATA%/BlenderAI/assets)."""
+    path = _blenderai_data_dir() / "assets"
+    try:
+        path.mkdir(parents=True, exist_ok=True)
+    except Exception:
+        pass
+    return path
 
     # Deduplicate while preserving order
     seen: set[str] = set()
