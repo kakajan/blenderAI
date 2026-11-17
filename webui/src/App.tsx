@@ -8,7 +8,7 @@ import HistoryPage from "./pages/HistoryPage";
 import SettingsPage from "./pages/SettingsPage";
 import LogsPage from "./pages/LogsPage";
 import { getSettings } from "./api/client";
-import { t, setLang, resolveDirection, Lang, UiDirection } from "./i18n";
+import { t, setLang, resolveDirection, resolveLang, Lang, UiDirection } from "./i18n";
 import "./styles/shell.css";
 
 export default function App() {
@@ -27,7 +27,7 @@ export default function App() {
   useEffect(() => {
     getSettings()
       .then((s) => {
-        const l = (s.language === "fa" ? "fa" : "en") as Lang;
+        const l = resolveLang(s.language);
         const d = (["auto", "ltr", "rtl"].includes(s.ui_direction) ? s.ui_direction : "auto") as UiDirection;
         applyLocale(l, d);
       })

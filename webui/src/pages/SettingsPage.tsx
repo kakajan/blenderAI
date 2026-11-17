@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { getSettings, putSettings } from "../api/client";
 import type { AppSettings } from "../api/client";
 import Select from "../components/Select";
-import { Lang, UiDirection, t } from "../i18n";
+import { resolveLang, Lang, UiDirection, t } from "../i18n";
 import "./providers.css";
 
 export default function SettingsPage({
@@ -20,7 +20,7 @@ export default function SettingsPage({
   async function save(patch: Record<string, unknown>) {
     const next = await putSettings(patch);
     setSettings(next);
-    const lang = (next.language === "fa" ? "fa" : "en") as Lang;
+    const lang = resolveLang(next.language);
     const dir = (["auto", "ltr", "rtl"].includes(next.ui_direction) ? next.ui_direction : "auto") as UiDirection;
     onLocale(lang, dir);
     setMsg(t("settings.saved"));
@@ -35,10 +35,11 @@ export default function SettingsPage({
       <div className="card settings-card">
         <Select
           label={t("settings.language")}
-          value={settings.language === "fa" ? "fa" : "en"}
+          value={resolveLang(settings.language)}
           onChange={(v) => save({ language: v })}
           options={[
             { value: "en", label: "English" },
+            { value: "uk", label: "Українська" },
             { value: "fa", label: "فارسی (Persian)" },
           ]}
         />

@@ -1,7 +1,10 @@
-export type Lang = "en" | "fa";
+import { uk } from "./uk";
+
+export type Lang = "en" | "fa" | "uk";
 export type UiDirection = "auto" | "ltr" | "rtl";
 
 const dict = {
+  uk,
   en: {
     tagline: "Professional AI assistant for Blender",
     "nav.chat": "Chat",
@@ -270,8 +273,12 @@ export type I18nKey = keyof (typeof dict)["en"];
 
 let current: Lang = "en";
 
+export function resolveLang(lang: string): Lang {
+  return lang === "fa" || lang === "uk" ? lang : "en";
+}
+
 export function setLang(lang: Lang) {
-  current = lang === "fa" ? "fa" : "en";
+  current = resolveLang(lang);
 }
 
 export function getLang(): Lang {

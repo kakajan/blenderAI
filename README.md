@@ -121,7 +121,7 @@ Full walkthrough (install → providers → skills → MCP → troubleshooting):
 | **Presets** | Ready-made prompts and workflows |
 | **Providers** | All AI connection settings (the source of truth) |
 | **History** | Past conversations |
-| **Settings** | Language (EN/FA), text direction (LTR/RTL), autonomy, MCP token |
+| **Settings** | Language (EN/FA/UK), text direction (LTR/RTL), autonomy, MCP token |
 
 **Tip:** Language and text direction are independent — you can keep English UI with RTL layout if you prefer.
 
